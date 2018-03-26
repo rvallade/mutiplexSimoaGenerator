@@ -10,6 +10,8 @@ import java.io.PrintStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class Generator {
 	private static final String MODELE_RAPPORT = "com/multiplexSimoaGenerator/neuro4plex_Model.xlsx";
 	private static final String PATH_DATA_OUTPUT = "C:/Data";
-	private Map<String, List<Row>> beadPlexMap = new HashMap();
+	private Map<String, List<ExcelRow>> beadPlexMap = new HashMap();
 
 	public void execute() throws IOException {
 		readInputFileAndStoreObjects();
@@ -51,7 +53,7 @@ public class Generator {
 							aeb);
 					
 					if (!StringUtil.isEmpty(aeb)) {
-						List rowsForBeadPlex = beadPlexMap.get(beadPlex);
+						List<ExcelRow> rowsForBeadPlex = beadPlexMap.get(beadPlex);
 						
 						if (rowsForBeadPlex == null) {
 							rowsForBeadPlex = new ArrayList();
@@ -71,6 +73,23 @@ public class Generator {
 				System.out.println(e);
 			}
 			i++;
+		}
+		
+		// sort the rows in the map for each key
+		for (String key : beadPlexMap.keySet()) {
+			Collections.sort(beadPlexMap.get(key), new Comparator<ExcelRow>() {
+
+				public int compare(ExcelRow o1, ExcelRow o2) {
+					Location loc1 = o1.getLocation();
+					Location loc2 = o2.getLocation();
+					if (loc1.getLetter().equals(loc2.getLetter())) {
+						return loc1.getLetter().compareTo(loc2.getLetter());
+					} else {
+						return loc1.getNumber().compareTo(loc2.getNumber());
+					}
+				}
+				
+			});
 		}
 
 		System.out.println("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
