@@ -8,9 +8,14 @@ public class ExcelRow {
   private Location location;
   private String aeb;
   private String errorMessage;
+  private boolean isException = false;
+  
+  public ExcelRow(int id) {
+	  this.id = id;
+  }
   
   public ExcelRow(int id, String beadPlex, String sampleID, String concentration, Location location, String aeb) {
-    this.id = id;
+    this(id);
     this.beadPlex = beadPlex;
     this.sampleID = sampleID;
     this.concentration = concentration;
@@ -66,8 +71,15 @@ public class ExcelRow {
     this.errorMessage = errorMessage;
   }
   
-  public String toString()
-  {
-    return "Row #" + id + ", sampleID=" + sampleID + ", BeadPlex=" + beadPlex + ", location=" + location.toString() + ", Concentration=" + concentration + ", AEB=" + aeb;
+  public boolean isException() {
+	  return isException;
+  }
+  
+  public void setIsException(boolean isException) {
+	  this.isException = isException;
+  }
+  
+  public String toString() {
+    return "Row #" + id + "   \t sampleID=" + sampleID + "    \t BeadPlex=" + beadPlex + "       \t location=" + location.toString() + "\t Concentration=" + concentration + "\t AEB=" + aeb + "\t Error=" + errorMessage;
   }
 }
