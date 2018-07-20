@@ -31,4 +31,21 @@ public class StringUtil {
 		}
 		return sampleID.substring(0, lastLetterBeforeNumbers + 1);
 	}
+	
+	public static String getCommonSampleName(String name1, String name2) {
+		/*String commonName = "";
+		if (name2 == null) {
+			commonName = name1;
+		} else {
+			for (int i = 0 ; i < name1.length() ; i++) {
+				if (name1.charAt(i) == name2.charAt(i)) {
+					commonName += name1.charAt(i);
+				} else {
+					break;
+				}
+			}
+		}
+		return commonName;*/
+		return name1.substring(0, name1.length()-2);
+	}
 }

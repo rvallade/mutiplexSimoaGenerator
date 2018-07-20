@@ -1,5 +1,6 @@
 package com.multiplexSimoaGenerator;
 
+import java.awt.Font;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,10 +16,18 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -26,11 +35,11 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class Generator {
 	private static final String MODELE_RAPPORT = "com/multiplexSimoaGenerator/neuro4plex_Model.xlsx";
 	private static final String PATH_DATA_OUTPUT = "C:/multiplexSimoaGenerator";
-	private Map<String, List<ExcelRow>> beadPlexMap = new HashMap();
+	private Map<String, BeadPlexBean> beadPlexMap = new HashMap<String, BeadPlexBean>();
 	private List<ExcelRow> errorRows = new ArrayList<ExcelRow>();
 	
 	public void execute() throws IOException {
-		Map<Integer, List<String>> data = new HashMap();
+		Map<Integer, List<String>> data = new HashMap<Integer, List<String>>();
 		FileInputStream inputfile = new FileInputStream(new File("C:/multiplexSimoaGenerator/input_data.xlsx"));
 		
 		// create empty result file
@@ -39,29 +48,42 @@ public class Generator {
 		
 		// read input file and build the beadPlex map
 		buildBeadPlexMapFromInputFile(inputfile);
-		//System.out.println("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
+		System.out.println("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
+		for (String key : beadPlexMap.keySet()) {
+			System.out.println(beadPlexMap.get(key).toString());
+		}
+		filloutNewFile(filename, outputStream);
 		
+	}
+
+	private void filloutNewFile(String filename, FileInputStream outputStream) 
+			throws IOException, FileNotFoundException {
 		// based on the map, create the tabs and fill them
 		// for each beadPlex ==> 1 tab
 		XSSFWorkbook wb = new XSSFWorkbook(outputStream);
+
+		XSSFCellStyle style1 = wb.createCellStyle();
+	    style1.setFillForegroundColor(new XSSFColor(new java.awt.Color(128, 0, 128)));
+	    style1.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+	    int color = 0;
+	    
 		for (String key : beadPlexMap.keySet()) {
 			XSSFSheet sheet = wb.cloneSheet(0, key);
+			XSSFCellStyle currentStyle = wb.createCellStyle();
+		    IndexedColors currentColor = SheetUtil.colors[color++];
+		    style1.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		    style1.setFillForegroundColor(new XSSFColor(currentColor));
+		    style1.setVerticalAlignment(VerticalAlignment.CENTER);
+		    style1.setAlignment(HorizontalAlignment.CENTER);
+		    sheet.setTabColor(new XSSFColor(currentColor));
 			try {
-				fillSheet(sheet, key);
+				fillSheet(sheet, key, currentColor);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			/*for (int r = 0; r < 5; r++) {
-				XSSFRow row = sheet.createRow(r);
-
-				for (int c = 0; c < 5; c++) {
-					XSSFCell cell = row.createCell(c);
-
-					cell.setCellValue("Cell " + r + " " + c);
-				}
-			}*/
 		}
+		
 		wb.removeSheetAt(0);
 		wb.setSheetOrder("ERRORS", wb.getNumberOfSheets()-1);
 		wb.setActiveSheet(0);
@@ -79,128 +101,69 @@ public class Generator {
 		wb.write(fileOut);
 		fileOut.flush();
 		fileOut.close();
-		
 	}
 	
-	private void fillSheet(XSSFSheet sheet, String key) throws Exception {
+	private void fillSheet(XSSFSheet sheet, String key, IndexedColors currentColor) throws Exception {
 		// just the common stuff
 		XSSFRow header = sheet.getRow(0);
 		header.getCell(0).setCellValue(key + " (pg/mL)");
 		header.getCell(11).setCellValue("Final " + key + " (pg/mL)");
+		/*for (int i = 0 ; i <= 11 ; i++) {
+			header.getCell(i).getCellStyle().setFillPattern(FillPatternType.SOLID_FOREGROUND);
+			header.getCell(i).getCellStyle().setFillForegroundColor(new XSSFColor(currentColor));
+		}*/
+		BeadPlexBean beadPlexBean = beadPlexMap.get(key);
+		beadPlexBean.sortLists();
 		
-		List<ExcelRow> rowsForBeadPlex = beadPlexMap.get(key);
-		Collections.sort(rowsForBeadPlex, new Comparator<ExcelRow>() {
-			public int compare(ExcelRow o1, ExcelRow o2) {
-				String sampleID1 = o1.getSampleID();
-				String sampleID2 = o2.getSampleID();
-				Location loc1 = o1.getLocation();
-				Location loc2 = o2.getLocation();
-				int n1 = Integer.parseInt(loc1.getNumber());
-				int n2 = Integer.parseInt(loc2.getNumber());
-				// CAL first, before anything else, then QC, then the rest
-				if (sampleID1.toUpperCase().startsWith("CAL") || sampleID2.toUpperCase().startsWith("CAL")) {
-					if (sampleID1.toUpperCase().startsWith("CAL") && sampleID2.toUpperCase().startsWith("CAL")) {
-						return sampleID1.compareTo(sampleID2);
-					} else if (sampleID1.toUpperCase().startsWith("CAL")){
-						return -1;
-					} else {
-						return 1;
-					}
-				} else if (sampleID1.toUpperCase().startsWith("QC") || sampleID2.toUpperCase().startsWith("QC")) {
-					if (sampleID1.toUpperCase().startsWith("QC") && sampleID2.toUpperCase().startsWith("QC")) {
-						return sampleID1.compareTo(sampleID2);
-					} else if (sampleID1.toUpperCase().startsWith("QC")){
-						return -1;
-					} else {
-						return 1;
-					}
-				}  else if (!loc1.getNumber().equals(loc2.getNumber())) {
-					return loc1.getNumber().compareTo(loc2.getNumber());
-				} else {
-					return loc1.getLetter().compareTo(loc2.getLetter());
-				}
-				
-				/*if (n1 == n2) {
-					return loc1.getLetter().compareTo(loc2.getLetter());
-				} else {
-					// same pair? ==> N1/N2 ==> N2 must be "even" and N1 must be N2-1
-					// in a pair the biggest number must be evem
-					if (n1 > n2) {
-						if (n1 % 2 == 0 && n1 - 1 == n2) {
-							// same pair
-							return loc1.getLetter().compareTo(loc2.getLetter());
-						} else {
-							return loc1.getNumber().compareTo(loc2.getNumber());
-						}
-					} else {
-						if (n2 % 2 == 0 && n2 - 1 == n1) {
-							// same pair
-							return loc1.getLetter().compareTo(loc2.getLetter());
-						} else {
-							return loc1.getNumber().compareTo(loc2.getNumber());
-						}
-					}
-				}*/
-			}
-		});
-		
-		for (ExcelRow row : rowsForBeadPlex) {
-			System.out.println(row);
-		}
+		//System.out.println(beadPlexBean.toString());
 		
 		int currentRow = 1;
 		boolean twoRows = false;
-		for (int i = 0 ; i <= rowsForBeadPlex.size() ; ) {
-			ExcelRow excelRow = rowsForBeadPlex.get(i);
-			//System.out.println("Processing: " + excelRow.toString());
-			// the next one should be the same sample, otherwise it means we have one of the 2 duplicates in error
-			ExcelRow potentialDuplicate = null;
-			if (i + 1 < rowsForBeadPlex.size()) {
-				potentialDuplicate = rowsForBeadPlex.get(i+1);
-			}
-			if (potentialDuplicate != null) {
-				if (StringUtil.isSameSample(excelRow.getSampleID(), potentialDuplicate.getSampleID())) {
-					twoRows = true;
-				}
-			}
+		// CAL first
+		currentRow = processList(beadPlexBean.getCalRows(), sheet, currentRow);
+		// QC
+		currentRow = processList(beadPlexBean.getQcRows(), sheet, currentRow);
+		// OTHER ROWS
+		Map<Integer, List<ExcelRow>> mapToProcess = beadPlexBean.getMapPositionExcelRows();
+		for (int j = 1 ; j<50 ; j=j+2) {
+			List<ExcelRow> list = mapToProcess.get(j);
+			List<ExcelRow> duplicatesList = mapToProcess.get(j+1);
 			
-			// the first is always there
-			XSSFRow row = sheet.getRow(currentRow);
-			row.getCell(1).setCellValue(StringUtil.getSampleName(excelRow.getSampleID()));
-			row.getCell(2).setCellValue(excelRow.getLocation().toString());
-			if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
-				row.getCell(5).setCellValue(excelRow.getErrorMessage());
-			} else {
-				row.getCell(5).setCellValue(Double.parseDouble(excelRow.getAeb()));
-			}
-			i++;
-			if (twoRows) {
-				row.getCell(3).setCellValue(potentialDuplicate.getLocation().toString());
-				if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
-					row.getCell(6).setCellValue(potentialDuplicate.getErrorMessage());
-				} else {
-					row.getCell(6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+			if (list != null) {
+				for (int i = 0 ; i < list.size() ; i++) {
+					ExcelRow excelRow = list.get(i);
+					System.out.println("Processing: " + excelRow.toString());
+					// the next one should be the same sample, otherwise it means we have one of the 2 duplicates in error
+					ExcelRow potentialDuplicate = duplicatesList != null ? getDuplicateRow(duplicatesList, excelRow.getSampleID()) : null;
+					twoRows = potentialDuplicate != null;
+					
+					// the first is always there
+					XSSFRow row = sheet.getRow(currentRow);
+					row.getCell(1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID(), potentialDuplicate != null ? potentialDuplicate.getSampleID() : null));
+					row.getCell(2).setCellValue(excelRow.getLocation().toString());
+					if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
+						row.getCell(5).setCellValue(excelRow.getErrorMessage());
+					} else {
+						row.getCell(5).setCellValue(Double.parseDouble(excelRow.getAeb()));
+					}
+					
+					if (twoRows) {
+						row.getCell(3).setCellValue(potentialDuplicate.getLocation().toString());
+						if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
+							row.getCell(6).setCellValue(potentialDuplicate.getErrorMessage());
+						} else {
+							row.getCell(6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+						}
+					}
+					currentRow++;
 				}
-				i++;
 			}
-			currentRow++;
-			// iterate on the list
-			//for (int y = 0 ; y < rowsForBeadPlex.size() ; ) {
-			//	ExcelRow excelRow = rowsForBeadPlex.get(y);
-			//	if (Integer.parseInt(excelRow.getLocation().getNumber()) == i) {
-			//		// first of the pair
-			//		System.out.println(excelRow);
-			//		System.out.println(beadPlexMap.get(key).get(y+1));
-			//	}
-			//	y = y + 2;
-			//}
-			//i = i + 2;
 		}
 		
 		// delete unused rows
-		for (int i = currentRow ; i < 102 ; i++) {
+		/*for (int i = currentRow ; i < 101 ; i++) {
 			SheetUtil.removeRow(sheet, i);
-		}
+		}*/
 	}
 	
 	private void buildBeadPlexMapFromInputFile(FileInputStream file) throws IOException {
@@ -227,22 +190,14 @@ public class Generator {
 						// add row to the list of rows without beadPlex. Those rows should be added to every beadPlex' map at the end
 						rowsWithoutBeadPlexlist.add(currentRow);
 					} else {
-						if (!StringUtil.isEmpty(aeb)) {
-							List<ExcelRow> rowsForBeadPlex = beadPlexMap.get(beadPlex);
+						BeadPlexBean beadPlexBean = beadPlexMap.get(beadPlex);
 
-							if (rowsForBeadPlex == null) {
-								rowsForBeadPlex = new ArrayList<ExcelRow>();
-								beadPlexMap.put(beadPlex, rowsForBeadPlex);
-							}
-
-							rowsForBeadPlex.add(currentRow);
-
-							//System.out.println(currentRow.toString());
-						} else {
-							currentRow.setErrorMessage(SheetUtil.getCellStringValue(row.getCell(SheetUtil.ERROR_TXT)));
-							errorRows.add(currentRow);
-							//System.out.println("no AEB on line: " + (i + 1) + ", error message: " + SheetUtil.getCellStringValue(row.getCell(SheetUtil.ERROR_TXT)));
+						if (beadPlexBean == null) {
+							beadPlexBean = new BeadPlexBean(beadPlex);
+							beadPlexMap.put(beadPlex, beadPlexBean);
 						}
+
+						beadPlexBean.addRow(currentRow);
 					}
 					
 				} catch (Exception e) {
@@ -257,7 +212,7 @@ public class Generator {
 
 		// add the rows without beadPlex in the map for each key
 		for (String key : beadPlexMap.keySet()) {
-			beadPlexMap.get(key).addAll(rowsWithoutBeadPlexlist);
+			beadPlexMap.get(key).addRowsWithoutExplicitBeadPlex(rowsWithoutBeadPlexlist);
 		}
 		
 		workbook.close();
@@ -352,5 +307,67 @@ public class Generator {
 		String formatDateTime = timePoint.format(formatter);
 		
 		return "C:/multiplexSimoaGenerator/neuro4plex_" + formatDateTime + ".xlsx";
+	}
+
+	private int processList(List<ExcelRow> list, XSSFSheet sheet, int currentRow) {
+		boolean twoRows = false;
+		for (int i = 0 ; i < list.size() ; ) {
+			ExcelRow excelRow = list.get(i);
+			//System.out.println("Processing: " + excelRow.toString());
+			// the next one should be the same sample, otherwise it means we have one of the 2 duplicates in error
+			ExcelRow potentialDuplicate = null;
+			if (i + 1 < list.size()) {
+				potentialDuplicate = list.get(i+1);
+			}
+			if (potentialDuplicate != null) {
+				if (StringUtil.isSameSample(excelRow.getSampleID(), potentialDuplicate.getSampleID())) {
+					twoRows = true;
+				}
+			}
+			
+			// the first is always there
+			XSSFRow row = sheet.getRow(currentRow);
+			row.getCell(1).setCellValue(excelRow.isCalRow() ? "" : excelRow.getSampleID());
+			row.getCell(2).setCellValue(excelRow.getLocation().toString());
+			if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
+				row.getCell(5).setCellValue(excelRow.getErrorMessage());
+			} else {
+				if (!StringUtil.isEmpty(excelRow.getAeb())) {
+					row.getCell(5).setCellValue(Double.parseDouble(excelRow.getAeb()));
+				} else {
+					row.getCell(5).setCellValue("");
+				}
+			}
+			i++;
+			if (twoRows) {
+				row.getCell(3).setCellValue(potentialDuplicate.getLocation().toString());
+				if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
+					row.getCell(6).setCellValue(potentialDuplicate.getErrorMessage());
+				} else {
+					if (!StringUtil.isEmpty(potentialDuplicate.getAeb())) {
+						row.getCell(6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+					} else {
+						row.getCell(6).setCellValue("");
+					}
+				}
+				i++;
+			}
+			currentRow++;
+		}
+		
+		return currentRow;
+	}
+	
+	private ExcelRow getDuplicateRow(List<ExcelRow> list, String sampleID) {
+		ExcelRow duplicate = null;
+		if (list != null) {
+			for (ExcelRow row : list) {
+				if (StringUtil.isSameSample(sampleID, row.getSampleID())) {
+					duplicate = row;
+					break;
+				}
+			}
+		}
+		return duplicate;
 	}
 }

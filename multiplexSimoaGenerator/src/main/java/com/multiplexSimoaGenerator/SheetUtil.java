@@ -1,6 +1,7 @@
 package com.multiplexSimoaGenerator;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -19,6 +20,8 @@ public class SheetUtil {
 	public static final int OUT_LOCATION_2 = 3;
 	public static final int OUT_AEB_1 = 4;
 	public static final int OUT_AEB_2 = 5;
+	
+	public static final IndexedColors[] colors = {IndexedColors.LEMON_CHIFFON, IndexedColors.CORAL, IndexedColors.TAN, IndexedColors.LIGHT_CORNFLOWER_BLUE, IndexedColors.YELLOW};
 		
 	public SheetUtil() {
 	}

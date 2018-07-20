@@ -79,6 +79,14 @@ public class ExcelRow {
 	  this.isException = isException;
   }
   
+  public boolean isCalRow() {
+	  return sampleID.toUpperCase().startsWith("CAL");
+  }
+  
+  public boolean isQCRow() {
+	  return sampleID.toUpperCase().startsWith("QC");
+  }
+
   public String toString() {
     return "Row #" + id + "   \t sampleID=" + sampleID + "    \t BeadPlex=" + beadPlex + "       \t location=" + location.toString() + "\t Concentration=" + concentration + "\t AEB=" + aeb + "\t Error=" + errorMessage;
   }
