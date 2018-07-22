@@ -1,93 +1,126 @@
 package com.multiplexSimoaGenerator;
 
-import java.awt.Font;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Generator {
+	private Map<String, Integer> mapPositions = null;
 	private static final String MODELE_RAPPORT = "com/multiplexSimoaGenerator/neuro4plex_Model.xlsx";
-	private static final String PATH_DATA_OUTPUT = "C:/multiplexSimoaGenerator";
-	private Map<String, BeadPlexBean> beadPlexMap = new HashMap<String, BeadPlexBean>();
-	private List<ExcelRow> errorRows = new ArrayList<ExcelRow>();
+	private Map<String, BeadPlexBean> beadPlexMap = null;
+	private List<ExcelRow> errorRows = null;
+	private List<String[]> rawData = null;
+	Map<Integer, List<String>> data = null;
 	
 	public void execute() throws IOException {
-		Map<Integer, List<String>> data = new HashMap<Integer, List<String>>();
-		FileInputStream inputfile = new FileInputStream(new File("C:/multiplexSimoaGenerator/input_data.xlsx"));
+		File dir = new File("C:/multiplexSimoaGenerator");
+		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
 		
-		// create empty result file
-		String filename = getFilename();
-		FileInputStream outputStream = buildExcel(filename);
-		
-		// read input file and build the beadPlex map
-		buildBeadPlexMapFromInputFile(inputfile);
-		System.out.println("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
-		for (String key : beadPlexMap.keySet()) {
-			System.out.println(beadPlexMap.get(key).toString());
+		for (File srcFile : files) {
+			clearAttributes();
+			
+			FileInputStream inputfile = new FileInputStream(srcFile);
+			// create empty result file
+			String filename = getFilename(srcFile.getName());
+			FileInputStream outputStream = buildExcel(filename);
+			XSSFWorkbook wb = new XSSFWorkbook(outputStream);
+			
+			// read input file and build the beadPlex map
+			try {
+				System.out.println("Read input file ...");
+				buildBeadPlexMapFromInputFile(inputfile);
+				System.out.println("Read input file ... 100%");
+				//System.out.println("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
+
+				/*for (String key : beadPlexMap.keySet()) {
+					System.out.println(beadPlexMap.get(key).toString());
+				}*/
+				
+				System.out.println("Write output file ...");
+				filloutNewFile(filename, wb);
+				System.out.println("Write output file ... beadplex tabs 100%");
+				filloutErrorTab(wb);
+				System.out.println("Write output file ... errors tab 100%");
+				filloutRowDataTab(wb);
+				System.out.println("Write output file ... raw data tab 100%");
+				System.out.println("Reorder sheets and set active sheet...");
+				wb.setSheetOrder("ERRORS", wb.getNumberOfSheets()-2);
+				wb.setSheetOrder("RAW DATA", wb.getNumberOfSheets()-1);
+				wb.setActiveSheet(0);
+				System.out.println("Reorder sheets and set active sheet... 100%");
+			} catch (Exception e) {
+				System.out.println("An error occured, process stopped. You will find the root cause in the ERRORS tab.");
+				e.printStackTrace();
+				logErrorInExcelFile(e.getMessage(), wb);
+				System.out.println("Loging error... 100%");
+			}
+
+			FileOutputStream fileOut = new FileOutputStream(filename);
+
+			wb.setForceFormulaRecalculation(true);
+			wb.write(fileOut);
+			fileOut.flush();
+			fileOut.close();
 		}
-		filloutNewFile(filename, outputStream);
-		
+	}
+	
+	private void clearAttributes() {
+		mapPositions = new HashMap<String, Integer>();
+		beadPlexMap = new HashMap<String, BeadPlexBean>();
+		errorRows = new ArrayList<ExcelRow>();
+		data = new HashMap<Integer, List<String>>();
+		rawData = new ArrayList<>();
 	}
 
-	private void filloutNewFile(String filename, FileInputStream outputStream) 
-			throws IOException, FileNotFoundException {
+	private void filloutRowDataTab(XSSFWorkbook wb) {
+		XSSFSheet sheet = wb.getSheet("RAW DATA");
+		int i = 0;
+		for (String[] data : rawData) {
+			XSSFRow row = sheet.createRow(i++);
+			int j = 0;
+			for (String value : data) {
+				XSSFCell cell = getCell(row, j++);
+				cell.setCellValue(value.replace("\"", ""));
+			}
+		}
+	}
+
+	private void filloutNewFile(String filename, XSSFWorkbook wb) throws IOException, FileNotFoundException {
 		// based on the map, create the tabs and fill them
 		// for each beadPlex ==> 1 tab
-		XSSFWorkbook wb = new XSSFWorkbook(outputStream);
-
-		XSSFCellStyle style1 = wb.createCellStyle();
-	    style1.setFillForegroundColor(new XSSFColor(new java.awt.Color(128, 0, 128)));
-	    style1.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 	    int color = 0;
-	    
 		for (String key : beadPlexMap.keySet()) {
 			XSSFSheet sheet = wb.cloneSheet(0, key);
-			XSSFCellStyle currentStyle = wb.createCellStyle();
 		    IndexedColors currentColor = SheetUtil.colors[color++];
-		    style1.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-		    style1.setFillForegroundColor(new XSSFColor(currentColor));
-		    style1.setVerticalAlignment(VerticalAlignment.CENTER);
-		    style1.setAlignment(HorizontalAlignment.CENTER);
 		    sheet.setTabColor(new XSSFColor(currentColor));
 			try {
-				fillSheet(sheet, key, currentColor);
+				fillSheet(sheet, key);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		
 		wb.removeSheetAt(0);
-		wb.setSheetOrder("ERRORS", wb.getNumberOfSheets()-1);
-		wb.setActiveSheet(0);
-		// add errors
+	}
+	
+	private void filloutErrorTab(XSSFWorkbook wb) {
 		XSSFSheet errorSheet = wb.getSheet("ERRORS");
 		int i = 1;
 		for (ExcelRow currentRow : errorRows) {
@@ -95,15 +128,16 @@ public class Generator {
 			XSSFCell cell = row.createCell(0);
 			cell.setCellValue(currentRow.getErrorMessage());
 		}
-		FileOutputStream fileOut = new FileOutputStream(filename);
-
-		wb.setForceFormulaRecalculation(true);
-		wb.write(fileOut);
-		fileOut.flush();
-		fileOut.close();
 	}
 	
-	private void fillSheet(XSSFSheet sheet, String key, IndexedColors currentColor) throws Exception {
+	private void logErrorInExcelFile(String message, XSSFWorkbook wb) {
+		XSSFSheet errorSheet = wb.getSheet("ERRORS");
+		XSSFRow row = errorSheet.createRow(1);
+		XSSFCell cell = row.createCell(0);
+		cell.setCellValue(message);
+	}
+ 	
+	private void fillSheet(XSSFSheet sheet, String key) throws Exception {
 		// just the common stuff
 		XSSFRow header = sheet.getRow(0);
 		header.getCell(0).setCellValue(key + " (pg/mL)");
@@ -132,27 +166,38 @@ public class Generator {
 			if (list != null) {
 				for (int i = 0 ; i < list.size() ; i++) {
 					ExcelRow excelRow = list.get(i);
-					System.out.println("Processing: " + excelRow.toString());
+					System.out.println("Processing main line: \r\n" + excelRow.toString());
 					// the next one should be the same sample, otherwise it means we have one of the 2 duplicates in error
 					ExcelRow potentialDuplicate = duplicatesList != null ? getDuplicateRow(duplicatesList, excelRow.getSampleID()) : null;
-					twoRows = potentialDuplicate != null;
+					if (potentialDuplicate != null) {
+						System.out.println("Processing duplicate: \r\n" + potentialDuplicate.toString());
+						twoRows = true;
+					}
 					
 					// the first is always there
 					XSSFRow row = sheet.getRow(currentRow);
-					row.getCell(1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID(), potentialDuplicate != null ? potentialDuplicate.getSampleID() : null));
-					row.getCell(2).setCellValue(excelRow.getLocation().toString());
+					getCell(row, 1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID(), potentialDuplicate != null ? potentialDuplicate.getSampleID() : null));
+					getCell(row, 2).setCellValue(excelRow.getLocation().toString());
 					if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
-						row.getCell(5).setCellValue(excelRow.getErrorMessage());
+						getCell(row, 5).setCellValue(excelRow.getErrorMessage());
 					} else {
-						row.getCell(5).setCellValue(Double.parseDouble(excelRow.getAeb()));
+						if (!StringUtil.isEmpty(excelRow.getAeb())) {
+							getCell(row, 5).setCellValue(Double.parseDouble(excelRow.getAeb()));
+						} else {
+							getCell(row, 5).setCellValue(excelRow.getErrorMessage());
+						}
 					}
 					
 					if (twoRows) {
-						row.getCell(3).setCellValue(potentialDuplicate.getLocation().toString());
+						getCell(row, 3).setCellValue(potentialDuplicate.getLocation().toString());
 						if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
-							row.getCell(6).setCellValue(potentialDuplicate.getErrorMessage());
+							getCell(row, 6).setCellValue(potentialDuplicate.getErrorMessage());
 						} else {
-							row.getCell(6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+							if (!StringUtil.isEmpty(potentialDuplicate.getAeb())) {
+								getCell(row, 6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+							} else {
+								getCell(row, 6).setCellValue(potentialDuplicate.getErrorMessage());
+							}
 						}
 					}
 					currentRow++;
@@ -160,62 +205,95 @@ public class Generator {
 			}
 		}
 		
-		// delete unused rows
+		//@TODO delete unused rows
 		/*for (int i = currentRow ; i < 101 ; i++) {
 			SheetUtil.removeRow(sheet, i);
 		}*/
 	}
 	
-	private void buildBeadPlexMapFromInputFile(FileInputStream file) throws IOException {
-		Workbook workbook = new XSSFWorkbook(file);
-		Sheet sheet = workbook.getSheetAt(0);
+	private void buildBeadPlexMapFromInputFile(FileInputStream file) throws Exception {
+		InputStreamReader ipsr=new InputStreamReader(file);
+		BufferedReader br = new BufferedReader(ipsr);
+
 		List<ExcelRow> rowsWithoutBeadPlexlist = new ArrayList<ExcelRow>();
 
+		String line;
 		int i = 0;
-		for (Row row : sheet) {
-			if (i != 0) {
-				try {
-					String beadPlex = SheetUtil.getCellStringValue(row.getCell(SheetUtil.BEAD_PLEX_NAME));
-					String aeb = SheetUtil.getCellStringValue(row.getCell(SheetUtil.AEB));
-
-					Location location = new Location(SheetUtil.getCellStringValue(row.getCell(SheetUtil.LOCATION)));
-					ExcelRow currentRow = new ExcelRow(i + 1, 
-							beadPlex,
-							SheetUtil.getCellStringValue(row.getCell(SheetUtil.SAMPLE_ID)),
-							SheetUtil.getCellStringValue(row.getCell(SheetUtil.CONCENTRATION)), 
-							location, 
-							aeb);
-					currentRow.setErrorMessage(SheetUtil.getCellStringValue(row.getCell(SheetUtil.ERROR_TXT)));
-					if (StringUtil.isEmpty(beadPlex)) {
-						// add row to the list of rows without beadPlex. Those rows should be added to every beadPlex' map at the end
-						rowsWithoutBeadPlexlist.add(currentRow);
-					} else {
-						BeadPlexBean beadPlexBean = beadPlexMap.get(beadPlex);
-
-						if (beadPlexBean == null) {
-							beadPlexBean = new BeadPlexBean(beadPlex);
-							beadPlexMap.put(beadPlex, beadPlexBean);
-						}
-
-						beadPlexBean.addRow(currentRow);
-					}
-					
-				} catch (Exception e) {
-					ExcelRow exceptionRow = new ExcelRow(i + 1);
-					exceptionRow.setIsException(true);
-					exceptionRow.setErrorMessage("ALERT: unexpected issue with row " + exceptionRow.getId() + ", exception message: " + e.getMessage());
-					errorRows.add(exceptionRow);
+		int rowNumber = 0;
+		int posSampleID = -1;
+		int posLocation = -1;
+		int posBeadPleaxName = -1;
+		int posStatus = -1;
+		int posAEB = -1;
+		int posConcentration = -1;
+		int posError = -1;
+				
+		while ((line=br.readLine()) != null){
+			String[] datas = line.split(",");
+			rawData.add(datas);
+			if (i == 0) {
+				// HEADER: we need to get the position of each header 
+				for (int z = 0 ; z < datas.length ; z++){
+					mapPositions.put(datas[z].replaceAll("\"", ""), i++);
 				}
+				if (mapPositions.isEmpty()) {
+					throw new Exception("Empty map of headers.");
+				}
+				if (mapPositions.get(SheetUtil.SAMPLE_ID_LBL) == null || mapPositions.get(SheetUtil.LOCATION_LBL) == null 
+						|| mapPositions.get(SheetUtil.BEAD_PLEX_NAME_LBL) == null || mapPositions.get(SheetUtil.STATUS_LBL) == null
+						|| mapPositions.get(SheetUtil.AEB_LBL) == null || mapPositions.get(SheetUtil.CONCENTRATION_LBL) == null
+						|| mapPositions.get(SheetUtil.ERROR_TXT_LBL) == null) {
+					throw new Exception("Can't find the loction of every relevant headers.");
+				}
+				
+				posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL);
+				posLocation = mapPositions.get(SheetUtil.LOCATION_LBL);
+				posBeadPleaxName = mapPositions.get(SheetUtil.BEAD_PLEX_NAME_LBL);
+				posStatus = mapPositions.get(SheetUtil.STATUS_LBL);
+				posAEB = mapPositions.get(SheetUtil.AEB_LBL);
+				posConcentration = mapPositions.get(SheetUtil.CONCENTRATION_LBL);
+				posError = mapPositions.get(SheetUtil.ERROR_TXT_LBL);
+
+				if (posSampleID == -1 || posLocation == -1 || posBeadPleaxName == -1 || posStatus == -1 || posAEB == -1 || posConcentration == -1 || posError == -1) {
+					throw new Exception("Impossible to determine the correct position of all the relevant data.");
+				}
+				rowNumber++;
+			} else {
+				// the actual data
+				String beadPlex = datas[posBeadPleaxName].replaceAll("\"", "");
+				String aeb = datas[posAEB].replaceAll("\"", "");
+
+				Location location = new Location(datas[posLocation].replaceAll("\"", ""));
+				ExcelRow currentRow = new ExcelRow(
+						rowNumber++, 
+						beadPlex,
+						datas[posSampleID].replaceAll("\"", ""),
+						datas[posConcentration].replaceAll("\"", ""), 
+						location, 
+						aeb);
+				currentRow.setErrorMessage(datas[posError].replaceAll("\"", ""));
+				
+				if (StringUtil.isEmpty(beadPlex)) {
+					// add row to the list of rows without beadPlex. Those rows should be added to every beadPlex' map at the end
+					rowsWithoutBeadPlexlist.add(currentRow);
+				} else {
+					BeadPlexBean beadPlexBean = beadPlexMap.get(beadPlex);
+
+					if (beadPlexBean == null) {
+						beadPlexBean = new BeadPlexBean(beadPlex);
+						beadPlexMap.put(beadPlex, beadPlexBean);
+					}
+
+					beadPlexBean.addRow(currentRow);
+				}
+				
 			}
-			i++;
 		}
 
 		// add the rows without beadPlex in the map for each key
 		for (String key : beadPlexMap.keySet()) {
 			beadPlexMap.get(key).addRowsWithoutExplicitBeadPlex(rowsWithoutBeadPlexlist);
 		}
-		
-		workbook.close();
 	}
 
 	public static FileInputStream buildExcel(String filename) throws FileNotFoundException {
@@ -231,11 +309,9 @@ public class Generator {
 			e.printStackTrace();
 		}
 
-		XSSFSheet dataSheet;
 		XSSFWorkbook workBook;
 		try {
 			workBook = new XSSFWorkbook(inputStream);
-			dataSheet = workBook.getSheet("DATAS");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
@@ -246,6 +322,7 @@ public class Generator {
 		try {
 			fos = new FileOutputStream(filename);
 			workBook.write(fos);
+			workBook.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 
@@ -301,12 +378,8 @@ public class Generator {
 		return size;
 	}
 	
-	private String getFilename() {
-		LocalDateTime timePoint = LocalDateTime.now();
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-		String formatDateTime = timePoint.format(formatter);
-		
-		return "C:/multiplexSimoaGenerator/neuro4plex_" + formatDateTime + ".xlsx";
+	private String getFilename(String fileName) {
+		return "C:/multiplexSimoaGenerator/" + fileName.substring(0, fileName.lastIndexOf(".")) + "_RESULT.xlsx";
 	}
 
 	private int processList(List<ExcelRow> list, XSSFSheet sheet, int currentRow) {
@@ -327,27 +400,27 @@ public class Generator {
 			
 			// the first is always there
 			XSSFRow row = sheet.getRow(currentRow);
-			row.getCell(1).setCellValue(excelRow.isCalRow() ? "" : excelRow.getSampleID());
-			row.getCell(2).setCellValue(excelRow.getLocation().toString());
+			getCell(row, 1).setCellValue(excelRow.isCalRow() ? "" : excelRow.getSampleID());
+			getCell(row, 2).setCellValue(excelRow.getLocation().toString());
 			if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
-				row.getCell(5).setCellValue(excelRow.getErrorMessage());
+				getCell(row, 5).setCellValue(excelRow.getErrorMessage());
 			} else {
 				if (!StringUtil.isEmpty(excelRow.getAeb())) {
-					row.getCell(5).setCellValue(Double.parseDouble(excelRow.getAeb()));
+					getCell(row, 5).setCellValue(Double.parseDouble(excelRow.getAeb()));
 				} else {
-					row.getCell(5).setCellValue("");
+					getCell(row, 5).setCellValue("");
 				}
 			}
 			i++;
 			if (twoRows) {
-				row.getCell(3).setCellValue(potentialDuplicate.getLocation().toString());
+				getCell(row, 3).setCellValue(potentialDuplicate.getLocation().toString());
 				if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
-					row.getCell(6).setCellValue(potentialDuplicate.getErrorMessage());
+					getCell(row, 6).setCellValue(potentialDuplicate.getErrorMessage());
 				} else {
 					if (!StringUtil.isEmpty(potentialDuplicate.getAeb())) {
-						row.getCell(6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
+						getCell(row, 6).setCellValue(Double.parseDouble(potentialDuplicate.getAeb()));
 					} else {
-						row.getCell(6).setCellValue("");
+						getCell(row, 6).setCellValue("");
 					}
 				}
 				i++;
@@ -369,5 +442,9 @@ public class Generator {
 			}
 		}
 		return duplicate;
+	}
+	
+	private XSSFCell getCell(XSSFRow row, int number) {
+		return row.getCell(number, MissingCellPolicy.CREATE_NULL_AS_BLANK);
 	}
 }

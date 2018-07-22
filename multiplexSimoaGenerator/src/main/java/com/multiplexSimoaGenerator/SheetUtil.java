@@ -1,6 +1,5 @@
 package com.multiplexSimoaGenerator;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -14,6 +13,14 @@ public class SheetUtil {
 	public static final int CONCENTRATION = 13;
 	public static final int ERROR_TXT = 33;
 	
+	public static final String SAMPLE_ID_LBL = "Sample ID";
+	public static final String LOCATION_LBL = "Location";
+	public static final String BEAD_PLEX_NAME_LBL = "Bead Plex Name";
+	public static final String STATUS_LBL = "Status";
+	public static final String AEB_LBL = "AEB";
+	public static final String CONCENTRATION_LBL = "Conc.";
+	public static final String ERROR_TXT_LBL = "Errors";
+
 	public static final int OUT_CONCENTRATION = 0;
 	public static final int OUT_SAMPLE_ID = 1;
 	public static final int OUT_LOCATION_1 = 2;
@@ -22,22 +29,7 @@ public class SheetUtil {
 	public static final int OUT_AEB_2 = 5;
 	
 	public static final IndexedColors[] colors = {IndexedColors.LEMON_CHIFFON, IndexedColors.CORAL, IndexedColors.TAN, IndexedColors.LIGHT_CORNFLOWER_BLUE, IndexedColors.YELLOW};
-		
-	public SheetUtil() {
-	}
 
-	public static String getCellStringValue(Cell cell) {
-		if (cell == null)
-			return "";
-		if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.STRING.getCode())
-			return cell.getStringCellValue();
-		if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC.getCode()) {
-			return Double.toString(cell.getNumericCellValue());
-		}
-
-		return "";
-	}
-	
 	public static void removeRow(Sheet sheet, int rowIndex) {
 	    int lastRowNum = sheet.getLastRowNum();
 	    if (rowIndex >= 0 && rowIndex < lastRowNum) {
