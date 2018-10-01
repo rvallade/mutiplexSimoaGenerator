@@ -30,6 +30,7 @@ public class Generator {
 	Map<Integer, List<String>> data = null;
 	
 	public void execute() throws IOException {
+		System.out.println("Multiplex Simoa Generator - V2");
 		System.out.println("START");
 		File dir = new File("C:/multiplexSimoaGenerator");
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
