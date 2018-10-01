@@ -5,25 +5,49 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class BeadPlexBean {
 	private String beadPlex = null;
-	private Map<Integer, List<ExcelRow>> mapPositionExcelRows = new HashMap<Integer, List<ExcelRow>>();
-	private List<ExcelRow> calRows = new ArrayList<ExcelRow>();
-	private List<ExcelRow> qcRows = new ArrayList<ExcelRow>();
+	private List<ExcelRow> listOfAllRows = new ArrayList<>();
+	private Map<Integer, List<ExcelRow>> mapPositionExcelRows = new HashMap<>();
+	private List<ExcelRow> calRows = new ArrayList<>();
+	private List<ExcelRow> qcRows = new ArrayList<>();
+	private List<ExcelRow> duplicateRows = new ArrayList<>();
+	private Set<String> sampleIDSet = new HashSet<>();
 	
 	public BeadPlexBean(String beadPlex) {
 		this.beadPlex = beadPlex;
 	}
 	
-	public void addRow(ExcelRow row) {
+	public void addToGenericList(ExcelRow row) {
+		listOfAllRows.add(row);
+	}
+	
+	public void dispatchRows() {
+		Collections.sort(listOfAllRows, new Comparator<ExcelRow>() {
+			public int compare(ExcelRow o1, ExcelRow o2) {
+				return o1.getSampleID().compareTo(o2.getSampleID());
+			}
+		});
+		for (ExcelRow row : listOfAllRows) {
+			addRow(row);
+		}
+	}
+	
+	private void addRow(ExcelRow row) {
 		if (row.isCalRow()) {
 			addToCalRows(row);
 		} else if (row.isQCRow()) {
 			addToQCRows(row);
 		} else {
-			addExcelRowToPositionMap(row);
+			if (sampleIDSet.add(StringUtil.getSampleName(row.getSampleID()))) {
+				addExcelRowToPositionMap(row);
+			} else {
+				addToDuplicateRows(row);
+			}
 		}
 	}
 	
@@ -49,6 +73,10 @@ public class BeadPlexBean {
 		for(ExcelRow row : rows) {
 			addExcelRowToPositionMap(row);
 		}
+	}
+	
+	private void addToDuplicateRows(ExcelRow row) {
+		duplicateRows.add(row);
 	}
 	
 	public void sortLists() {
@@ -112,7 +140,7 @@ public class BeadPlexBean {
 				stringBuilder.append("\r\n");
 				stringBuilder.append(row.toString());
 			}
-			stringBuilder.append("\r\n Other:");
+			stringBuilder.append("\r\n Primay:");
 			for (int i = 1 ; i<50 ; i++) {
 				List<ExcelRow> list = mapPositionExcelRows.get(i);
 				if (list != null) {
@@ -123,6 +151,11 @@ public class BeadPlexBean {
 						stringBuilder.append(row.toString());
 					}
 				}
+			}
+			stringBuilder.append("\r\n Duplicates:");
+			for (ExcelRow row : duplicateRows) {
+				stringBuilder.append("\r\n");
+				stringBuilder.append(row.toString());
 			}
 		}
 		stringBuilder.append("\r\n ########### END");		
@@ -139,5 +172,9 @@ public class BeadPlexBean {
 
 	public List<ExcelRow> getQcRows() {
 		return qcRows;
+	}
+	
+	public List<ExcelRow> getDuplicateRows() {
+		return duplicateRows;
 	}
 }

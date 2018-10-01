@@ -1,5 +1,5 @@
-Change code to use a csv file as input
-Need to get the column position based on their real position on csv file
+Change code to use a csv file as input - DONE               
+Need to get the column position based on their real position on csv file           - DONE
 Change the sort logic to sort based on COLUMN first, then CAL, QC and others per beadPlex (Map<String, Map<Integer, List<ExcelRow>>>) - DONE
 Change the populate logic:
 	iterate over each key of the beadPlex map - DONE
@@ -8,7 +8,6 @@ Change the populate logic:
 	For each entry for the current column, try to find a match on sample name on the next column - DONE
 	Do the same thing for column +2 - DONE
 	
-	
 Move the Collection.Sort in BeadPlexBean - DONE
 
 When generated we see some same samples separated from the others. Maybe we need to sort by sample and then location?
@@ -16,9 +15,9 @@ When generated we see some same samples separated from the others. Maybe we need
 ==> sampleB F03 F04
 ==> sampleE A05 A06      THAT ONE IS MISSING FOR NOW					DONE
 
-Voir pour colorier les cellule header de la meme couleur que le tab
-Voir pour retirer les lignes en trop
 Tester differentes erreurs pour voir si le fichier est bien genere    DONE
 Ajouter des etapes en console?       DONE
 Ajouter le fichier origine dans un tab du fichier final      DONE
+Voir pour colorier les cellule header de la meme couleur que le tab
+Voir pour retirer les lignes en trop
 

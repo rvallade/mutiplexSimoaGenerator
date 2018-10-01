@@ -19,14 +19,9 @@ public class SheetUtil {
 	public static final String STATUS_LBL = "Status";
 	public static final String AEB_LBL = "AEB";
 	public static final String CONCENTRATION_LBL = "Conc.";
+	public static final String FITTED_CONCENTRATION_LBL = "Fitted Conc"; 
 	public static final String ERROR_TXT_LBL = "Errors";
 
-	public static final int OUT_CONCENTRATION = 0;
-	public static final int OUT_SAMPLE_ID = 1;
-	public static final int OUT_LOCATION_1 = 2;
-	public static final int OUT_LOCATION_2 = 3;
-	public static final int OUT_AEB_1 = 4;
-	public static final int OUT_AEB_2 = 5;
 	
 	public static final IndexedColors[] colors = {IndexedColors.LEMON_CHIFFON, IndexedColors.CORAL, IndexedColors.TAN, IndexedColors.LIGHT_CORNFLOWER_BLUE, IndexedColors.YELLOW};
 
