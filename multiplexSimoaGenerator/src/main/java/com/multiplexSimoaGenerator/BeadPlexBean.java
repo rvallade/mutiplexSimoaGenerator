@@ -35,6 +35,7 @@ public class BeadPlexBean {
 		for (ExcelRow row : listOfAllRows) {
 			addRow(row);
 		}
+		listOfAllRows = null;
 	}
 	
 	private void addRow(ExcelRow row) {
@@ -43,7 +44,7 @@ public class BeadPlexBean {
 		} else if (row.isQCRow()) {
 			addToQCRows(row);
 		} else {
-			if (sampleIDSet.add(StringUtil.getSampleName(row.getSampleID()))) {
+			if (sampleIDSet.add(StringUtil.getCommonSampleName(row.getSampleID()))) {
 				addExcelRowToPositionMap(row);
 			} else {
 				addToDuplicateRows(row);
@@ -123,42 +124,50 @@ public class BeadPlexBean {
 	@Override
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append("\r\n ########### START\r\n");
-		if (mapPositionExcelRows.isEmpty() && calRows.isEmpty() && qcRows.isEmpty()) {
-			stringBuilder.append("All lists or maps are empty for ");
-			stringBuilder.append(beadPlex);
+		stringBuilder.append("\r\n ###########\r\n");
+		if (listOfAllRows != null) {
+			stringBuilder.append("Lists of all rows for beadPlex ");
+			for (ExcelRow row : listOfAllRows) {
+				stringBuilder.append("\r\n");
+				stringBuilder.append(row.toString());
+			}			
 		} else {
-			stringBuilder.append("Lists or maps for beadPlex ");
-			stringBuilder.append(beadPlex);
-			stringBuilder.append("\r\n CAL:");
-			for (ExcelRow row : calRows) {
-				stringBuilder.append("\r\n");
-				stringBuilder.append(row.toString());
-			}
-			stringBuilder.append("\r\n QC:");
-			for (ExcelRow row : qcRows) {
-				stringBuilder.append("\r\n");
-				stringBuilder.append(row.toString());
-			}
-			stringBuilder.append("\r\n Primay:");
-			for (int i = 1 ; i<50 ; i++) {
-				List<ExcelRow> list = mapPositionExcelRows.get(i);
-				if (list != null) {
-					stringBuilder.append("\r\n Position");
-					stringBuilder.append(i);
-					for (ExcelRow row : list) {
-						stringBuilder.append("\r\n");
-						stringBuilder.append(row.toString());
+			if (mapPositionExcelRows.isEmpty() && calRows.isEmpty() && qcRows.isEmpty()) {
+				stringBuilder.append("All lists or maps are empty for ");
+				stringBuilder.append(beadPlex);
+			} else {
+				stringBuilder.append("Lists or maps for beadPlex ");
+				stringBuilder.append(beadPlex);
+				stringBuilder.append("\r\n CAL:");
+				for (ExcelRow row : calRows) {
+					stringBuilder.append("\r\n");
+					stringBuilder.append(row.toString());
+				}
+				stringBuilder.append("\r\n QC:");
+				for (ExcelRow row : qcRows) {
+					stringBuilder.append("\r\n");
+					stringBuilder.append(row.toString());
+				}
+				stringBuilder.append("\r\n Primay:");
+				for (int i = 1 ; i<50 ; i++) {
+					List<ExcelRow> list = mapPositionExcelRows.get(i);
+					if (list != null) {
+						stringBuilder.append("\r\n Position");
+						stringBuilder.append(i);
+						for (ExcelRow row : list) {
+							stringBuilder.append("\r\n");
+							stringBuilder.append(row.toString());
+						}
 					}
 				}
+				stringBuilder.append("\r\n Duplicates:");
+				for (ExcelRow row : duplicateRows) {
+					stringBuilder.append("\r\n");
+					stringBuilder.append(row.toString());
+				}
 			}
-			stringBuilder.append("\r\n Duplicates:");
-			for (ExcelRow row : duplicateRows) {
-				stringBuilder.append("\r\n");
-				stringBuilder.append(row.toString());
-			}
+			stringBuilder.append("\r\n ###########");		
 		}
-		stringBuilder.append("\r\n ########### END");		
 		return stringBuilder.toString();
 	}
 

@@ -27,10 +27,12 @@ public class Generator {
 	private Map<String, BeadPlexBean> beadPlexMap = null;
 	private List<ExcelRow> errorRows = null;
 	private List<String[]> rawData = null;
-	Map<Integer, List<String>> data = null;
+	private int nbRowsInSrcFile = 0;
+	private int nbExcelRowProcessed = 0;
+	List<String> stringFromSrcFile = new ArrayList<>();
 	
 	public void execute() throws IOException {
-		System.out.println("Multiplex Simoa Generator - V2");
+		System.out.println("Multiplex Simoa Generator - V2.1");
 		System.out.println("START");
 		File dir = new File("C:/multiplexSimoaGenerator");
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
@@ -61,6 +63,13 @@ public class Generator {
 				filloutErrorTab(wb);
 				System.out.println("Write output file ... errors tab 100%");
 				filloutRowDataTab(wb);
+				System.out.println(
+						nbRowsInSrcFile != nbExcelRowProcessed ? "######## WARNING: some rows missing in result file(" + nbRowsInSrcFile + "," + nbExcelRowProcessed + ")."  : "Nb rows correct.");
+				if (!stringFromSrcFile.isEmpty()) {
+					for (String string : stringFromSrcFile) {
+						System.out.println(string);
+					}
+				}
 				System.out.println("Write output file ... raw data tab 100%");
 				System.out.println("Reorder sheets and set active sheet...");
 				wb.setSheetOrder("ERRORS", wb.getNumberOfSheets() - 1);
@@ -88,8 +97,10 @@ public class Generator {
 		mapPositions = new HashMap<String, Integer>();
 		beadPlexMap = new HashMap<String, BeadPlexBean>();
 		errorRows = new ArrayList<ExcelRow>();
-		data = new HashMap<Integer, List<String>>();
 		rawData = new ArrayList<>();
+		stringFromSrcFile = new ArrayList<>();
+		nbExcelRowProcessed = 0;
+		nbRowsInSrcFile = 0;
 	}
 
 	private void filloutRowDataTab(XSSFWorkbook wb) {
@@ -185,7 +196,7 @@ public class Generator {
 					if (!StringUtil.isEmpty(excelRow.getConcentration())) {
 						getCell(row, 0).setCellValue(Double.parseDouble(excelRow.getConcentration()));
 					}
-					getCell(row, 1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID(), potentialDuplicate != null ? potentialDuplicate.getSampleID() : null));
+					getCell(row, 1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID()));
 					getCell(row, 2).setCellValue(excelRow.getLocation().toString());
 					if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
 						getCell(row, 5).setCellValue(excelRow.getErrorMessage());
@@ -199,6 +210,8 @@ public class Generator {
 							getCell(row, 12).setCellValue(Double.parseDouble(excelRow.getFittedConcentration()));
 						}
 					}
+					nbExcelRowProcessed++;
+					stringFromSrcFile.remove(excelRow.getBeadPlex() + "/" + excelRow.getSampleID() + "/" + excelRow.getLocation().toString());
 					
 					if (twoRows) {
 						if (!StringUtil.isEmpty(potentialDuplicate.getConcentration())) {
@@ -218,6 +231,8 @@ public class Generator {
 							}
 						}
 						twoRows = false;
+						nbExcelRowProcessed++;
+						stringFromSrcFile.remove(potentialDuplicate.getBeadPlex() + "/" + potentialDuplicate.getSampleID() + "/" + potentialDuplicate.getLocation().toString());
 					}
 					currentRow++;
 				}
@@ -283,6 +298,7 @@ public class Generator {
 				
 				rowNumber++;
 			} else {
+				nbRowsInSrcFile++;
 				// the actual data
 				String beadPlex = datas[posBeadPleaxName].replaceAll("\"", "");
 				String aeb = datas[posAEB].replaceAll("\"", "");
@@ -312,9 +328,13 @@ public class Generator {
 
 					beadPlexBean.addToGenericList(currentRow);
 				}
-				
+				stringFromSrcFile.add(beadPlex + "/" + currentRow.getSampleID() + "/" + currentRow.getLocation().toString());
 			}
 		}
+		/*System.out.println("List of rows before sort: ");
+		for (String key : beadPlexMap.keySet()) {
+			System.out.println(beadPlexMap.get(key).toString());
+		}*/
 		
 		// we need to dispatch all the rows in different lists for each beadPlex
 		for (String key : beadPlexMap.keySet()) {
@@ -326,9 +346,9 @@ public class Generator {
 			beadPlexMap.get(key).addRowsWithoutExplicitBeadPlex(rowsWithoutBeadPlexlist);
 		}
 
-		/*System.out.println("List of rows: ");
+		/*System.out.println("List of rows after sort: ");
 		for (String key : beadPlexMap.keySet()) {
-			beadPlexMap.get(key).toString();
+			System.out.println(beadPlexMap.get(key).toString());
 		}*/
 
 	}
@@ -455,6 +475,9 @@ public class Generator {
 				}
 			}
 			i++;
+			stringFromSrcFile.remove(excelRow.getBeadPlex() + "/" + excelRow.getSampleID() + "/" + excelRow.getLocation().toString());
+			nbExcelRowProcessed++;
+
 			if (twoRows) {
 				if (!StringUtil.isEmpty(potentialDuplicate.getConcentration())) {
 					getCell(row, 0).setCellValue(Double.parseDouble(potentialDuplicate.getConcentration()));
@@ -473,6 +496,8 @@ public class Generator {
 					}
 				}
 				i++;
+				nbExcelRowProcessed++;
+				stringFromSrcFile.remove(potentialDuplicate.getBeadPlex() + "/" + potentialDuplicate.getSampleID() + "/" + potentialDuplicate.getLocation().toString());
 			}
 			currentRow++;
 		}
