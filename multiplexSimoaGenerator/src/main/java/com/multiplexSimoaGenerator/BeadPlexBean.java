@@ -17,9 +17,11 @@ public class BeadPlexBean {
 	private List<ExcelRow> qcRows = new ArrayList<>();
 	private List<ExcelRow> duplicateRows = new ArrayList<>();
 	private Set<String> sampleIDSet = new HashSet<>();
+	private boolean sampleNameUsedAsIsInDuplicate = false;
 	
-	public BeadPlexBean(String beadPlex) {
+	public BeadPlexBean(String beadPlex, boolean sampleNameUsedAsIsInDuplicate) {
 		this.beadPlex = beadPlex;
+		this.sampleNameUsedAsIsInDuplicate = sampleNameUsedAsIsInDuplicate;
 	}
 	
 	public void addToGenericList(ExcelRow row) {
@@ -44,7 +46,7 @@ public class BeadPlexBean {
 		} else if (row.isQCRow()) {
 			addToQCRows(row);
 		} else {
-			if (sampleIDSet.add(StringUtil.getCommonSampleName(row.getSampleID()))) {
+			if (sampleIDSet.add(StringUtil.getCommonSampleName(row.getSampleID(), sampleNameUsedAsIsInDuplicate))) {
 				addExcelRowToPositionMap(row);
 			} else {
 				addToDuplicateRows(row);
@@ -85,9 +87,9 @@ public class BeadPlexBean {
 			public int compare(ExcelRow o1, ExcelRow o2) {
 				String sampleID1 = o1.getSampleID();
 				String sampleID2 = o2.getSampleID();
-				if (sampleID1.toUpperCase().startsWith("CAL") && sampleID2.toUpperCase().startsWith("CAL")) {
+				if (o1.isCalRow() && o2.isCalRow()) {
 					return sampleID1.compareTo(sampleID2);
-				} else if (sampleID1.toUpperCase().startsWith("CAL")){
+				} else if (o1.isCalRow()){
 					return -1;
 				} else {
 					return 1;
@@ -98,9 +100,9 @@ public class BeadPlexBean {
 			public int compare(ExcelRow o1, ExcelRow o2) {
 				String sampleID1 = o1.getSampleID();
 				String sampleID2 = o2.getSampleID();
-				if (sampleID1.toUpperCase().startsWith("QC") && sampleID2.toUpperCase().startsWith("QC")) {
+				if (o1.isQCRow() && o2.isQCRow()) {
 					return sampleID1.compareTo(sampleID2);
-				} else if (sampleID1.toUpperCase().startsWith("QC")){
+				} else if (o1.isQCRow()){
 					return -1;
 				} else {
 					return 1;

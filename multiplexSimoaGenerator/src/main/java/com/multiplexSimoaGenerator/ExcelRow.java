@@ -10,20 +10,18 @@ public class ExcelRow {
 	private String errorMessage;
 	private String fittedConcentration;
 	private boolean isException = false;
-
-	public ExcelRow(int id) {
-		this.id = id;
-	}
+	private String type;
 
 	public ExcelRow(int id, String beadPlex, String sampleID, String concentration, Location location, String aeb,
-			String fittedConcentration) {
-		this(id);
+			String fittedConcentration, String type) {
+		this.id = id;
 		this.beadPlex = beadPlex;
 		this.sampleID = sampleID;
 		this.concentration = concentration;
 		this.location = location;
 		this.aeb = aeb;
 		this.fittedConcentration = fittedConcentration;
+		this.type = type;
 	}
 
 	public int getId() {
@@ -91,11 +89,11 @@ public class ExcelRow {
 	}
 
 	public boolean isCalRow() {
-		return sampleID.toUpperCase().startsWith("CAL");
+		return "Calibrator".equalsIgnoreCase(type) || sampleID.toUpperCase().startsWith("CAL");
 	}
 
 	public boolean isQCRow() {
-		return sampleID.toUpperCase().startsWith("QC");
+		return "Control".equalsIgnoreCase(type) || sampleID.toUpperCase().startsWith("QC");
 	}
 
 	public String getFittedConcentration() {
@@ -106,10 +104,17 @@ public class ExcelRow {
 		this.fittedConcentration = fittedConcentration;
 	}
 
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
 	public String toString() {
 		return "Row #" + id + "   \t sampleID=" + sampleID + "    \t BeadPlex=" + beadPlex + "       \t location="
 				+ location.toString() + "\t Concentration=" + concentration + "\t AEB=" + aeb + "\t Fitted Conc.="
-				+ fittedConcentration + "\t Error="
-				+ errorMessage;
+				+ fittedConcentration + "\t Type=" + type + "\t Error=" + errorMessage;
 	}
 }

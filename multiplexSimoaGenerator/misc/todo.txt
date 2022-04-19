@@ -13,11 +13,22 @@ Move the Collection.Sort in BeadPlexBean - DONE
 When generated we see some same samples separated from the others. Maybe we need to sort by sample and then location?
 ==> sampleA E03 F04
 ==> sampleB F03 F04
-==> sampleE A05 A06      THAT ONE IS MISSING FOR NOW					DONE
+==> sampleE A05 A06      THAT ONE IS MISSING FOR NOW						DONE
 
-Tester differentes erreurs pour voir si le fichier est bien genere    DONE
-Ajouter des etapes en console?       DONE
-Ajouter le fichier origine dans un tab du fichier final      DONE
+Tester differentes erreurs pour voir si le fichier est bien genere    		DONE
+Ajouter des etapes en console?       										DONE
+Ajouter le fichier origine dans un tab du fichier final      				DONE
+
+V2.2
+Changer le nom de la colonne qui n'est plus la meme											DONE
+Qand le resultat est en millier le format dans le csv est different							DONE
+	==> 12.00
+	==> "1,234.00"
+	La virgule cause des problemes lors de la tokenisation
+Modifier fichier Excel (retirer graphpad columns, add conditional formatting, etc...)		DONE
+Sample id sometimes is not suffixed with digits in duplicates								DONE		
+Voir pour retirer les lignes en trop														DONE
+			
+
+
 Voir pour colorier les cellule header de la meme couleur que le tab
-Voir pour retirer les lignes en trop
-
