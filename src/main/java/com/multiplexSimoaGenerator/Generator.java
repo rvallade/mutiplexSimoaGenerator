@@ -24,7 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Generator {
 	private Map<String, Integer> mapPositions = null;
-	private static final String MODELE_RAPPORT = "com/multiplexSimoaGenerator/neuro4plex_Model.xlsx";
+	private static final String MODELE_RAPPORT = "neuro4plex_Model.xlsx";
 	private Map<String, BeadPlexBean> beadPlexMap = null;
 	private List<String[]> rawData = null;
 	private int nbRowsInSrcFile = 0;
@@ -33,7 +33,7 @@ public class Generator {
 	private boolean sampleNameUsedAsIsInDuplicate = false;
 	
 	public void execute() throws IOException {
-		log("Multiplex Simoa Generator - V2.2");
+		log("Multiplex Simoa Generator - V3");
 		log("START");
 		File dir = new File("C:/multiplexSimoaGenerator");
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));

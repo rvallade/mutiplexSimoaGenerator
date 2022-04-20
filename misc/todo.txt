@@ -1,0 +1,36 @@
+Change code to use a csv file as input - DONE               
+Need to get the column position based on their real position on csv file           - DONE
+Change the sort logic to sort based on COLUMN first, then CAL, QC and others per beadPlex (Map<String, Map<Integer, List<ExcelRow>>>) - DONE
+Change the populate logic:
+	iterate over each key of the beadPlex map - DONE
+	create the page using the name of the beadPlex (key of beadPlex map) - DONE
+	iterate over the value map for the beadPlex key (=> the column) - DONE
+	For each entry for the current column, try to find a match on sample name on the next column - DONE
+	Do the same thing for column +2 - DONE
+	
+Move the Collection.Sort in BeadPlexBean - DONE
+
+When generated we see some same samples separated from the others. Maybe we need to sort by sample and then location?
+==> sampleA E03 F04
+==> sampleB F03 F04
+==> sampleE A05 A06      THAT ONE IS MISSING FOR NOW						DONE
+
+Tester differentes erreurs pour voir si le fichier est bien genere    		DONE
+Ajouter des etapes en console?       										DONE
+Ajouter le fichier origine dans un tab du fichier final      				DONE
+
+V2.2
+Changer le nom de la colonne qui n'est plus la meme											DONE
+Qand le resultat est en millier le format dans le csv est different							DONE
+	==> 12.00
+	==> "1,234.00"
+	La virgule cause des problemes lors de la tokenisation
+Modifier fichier Excel (retirer graphpad columns, add conditional formatting, etc...)		DONE
+Sample id sometimes is not suffixed with digits in duplicates								DONE		
+Voir pour retirer les lignes en trop														DONE
+			
+V3
+migration to intelliJ
+changed project structure
+
+Voir pour colorier les cellule header de la meme couleur que le tab
