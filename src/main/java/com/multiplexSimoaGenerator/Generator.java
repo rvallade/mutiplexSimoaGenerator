@@ -8,10 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -23,6 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Generator {
+	private final String VERSION = "V3.1";
 	private Map<String, Integer> mapPositions = null;
 	private static final String MODELE_RAPPORT = "neuro4plex_Model.xlsx";
 	private Map<String, BeadPlexBean> beadPlexMap = null;
@@ -33,24 +31,37 @@ public class Generator {
 	private boolean sampleNameUsedAsIsInDuplicate = false;
 	
 	public void execute() throws IOException {
-		log("Multiplex Simoa Generator - V3");
+		log("Multiplex Simoa Generator - " + VERSION);
 		log("START");
+
 		File dir = new File("C:/multiplexSimoaGenerator");
+
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
-		
+		File[] resultFiles = dir.listFiles((d, name) -> name.endsWith(".xlsx"));
+
 		for (File srcFile : files) {
 			clearAttributes();
-			
-			FileInputStream inputfile = new FileInputStream(srcFile);
-			// create empty result file
-			String filename = getFilename(srcFile.getName());
-			FileInputStream outputStream = buildExcel(filename);
-			XSSFWorkbook wb = new XSSFWorkbook(outputStream);
-			
+			String srcFileName = srcFile.getName().substring(0, srcFile.getName().lastIndexOf("."));
+			String filename = getFilename(srcFileName);
+			FileInputStream inputFile = null;
+			log("Processing file (" + srcFile.getName() + ")");
+
+			// Do not continue if a result file already exists for that csv
+			if (resultFiles != null && Arrays.stream(resultFiles).anyMatch(x -> x.getName().startsWith(srcFileName))) {
+				log("\tA result file already exist. This file is skipped.");
+				continue;
+			}
+			FileInputStream outputStream;
+			XSSFWorkbook wb = null;
+
 			// read input file and build the beadPlex map
 			try {
-				log("Processing file (" + filename + ")");
-				buildBeadPlexMapFromInputFile(inputfile);
+				// create empty result file
+				inputFile = new FileInputStream(srcFile);
+				outputStream = buildExcel(filename);
+				wb = new XSSFWorkbook(outputStream);
+
+				buildBeadPlexMapFromInputFile(inputFile);
 				
 				log("Read input file ... 100%");
 				
@@ -90,12 +101,15 @@ public class Generator {
 				log("Loging error... 100%");
 			}
 
-			FileOutputStream fileOut = new FileOutputStream(filename);
+			if (inputFile != null) {
+				log("Save output file ...");
+				FileOutputStream fileOut = new FileOutputStream(filename);
 
-			wb.setForceFormulaRecalculation(true);
-			wb.write(fileOut);
-			fileOut.flush();
-			fileOut.close();
+				wb.setForceFormulaRecalculation(true);
+				wb.write(fileOut);
+				fileOut.flush();
+				fileOut.close();
+			}
 		}
 		log("END");
 	}
@@ -454,7 +468,7 @@ public class Generator {
 	}
 	
 	private String getFilename(String fileName) {
-		return "C:/multiplexSimoaGenerator/" + fileName.substring(0, fileName.lastIndexOf(".")) + "_RESULT.xlsx";
+		return "C:/multiplexSimoaGenerator/" + fileName + "_RESULT-" + VERSION + ".xlsx";
 	}
 
 	private int fillSheetForCalAndQC(List<ExcelRow> list, XSSFSheet sheet, int currentRow) {

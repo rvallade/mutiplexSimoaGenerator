@@ -33,4 +33,9 @@ V3
 migration to intelliJ
 changed project structure
 
+V3.1
+integration de la version en static field
+integration de la version dans le fichier resultat
+prevent creation of result file when an existing one is detected
+
 Voir pour colorier les cellule header de la meme couleur que le tab
