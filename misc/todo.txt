@@ -21,7 +21,7 @@ Ajouter le fichier origine dans un tab du fichier final      				DONE
 
 V2.2
 Changer le nom de la colonne qui n'est plus la meme											DONE
-Qand le resultat est en millier le format dans le csv est different							DONE
+Quand le resultat est en millier le format dans le csv est different							DONE
 	==> 12.00
 	==> "1,234.00"
 	La virgule cause des problemes lors de la tokenisation
