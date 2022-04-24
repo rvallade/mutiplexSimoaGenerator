@@ -44,4 +44,6 @@ made columns 12 and 13 "0.00"
 made column 12 bold
 
 
+Resolved POI dependency (migrated to 3.17)
+
 Voir pour colorier les cellule header de la meme couleur que le tab
