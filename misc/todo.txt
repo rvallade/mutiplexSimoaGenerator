@@ -40,5 +40,8 @@ prevent creation of result file when an existing one is detected
 
 V3.2
 fixed an issue when column "SAMPLE ID" is not present
+made columns 12 and 13 "0.00"
+made column 12 bold
+
 
 Voir pour colorier les cellule header de la meme couleur que le tab

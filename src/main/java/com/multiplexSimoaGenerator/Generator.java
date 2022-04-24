@@ -13,6 +13,7 @@ import java.util.*;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -145,7 +146,7 @@ public class Generator {
 		    IndexedColors currentColor = SheetUtil.colors[color++];
 		    sheet.setTabColor(new XSSFColor(currentColor));
 			try {
-				fillSheet(sheet, key);
+				fillSheet(wb, sheet, key);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -161,7 +162,7 @@ public class Generator {
 		cell.setCellValue(message);
 	}
  	
-	private void fillSheet(XSSFSheet sheet, String key) throws Exception {
+	private void fillSheet(Workbook workBook, XSSFSheet sheet, String key) throws Exception {
 		// just the common stuff
 		XSSFRow header = sheet.getRow(0);
 		header.getCell(0).setCellValue(key + " (pg/mL)");
@@ -178,9 +179,9 @@ public class Generator {
 		int currentRow = 1;
 		boolean twoRows = false;
 		// CAL first
-		currentRow = fillSheetForCalAndQC(beadPlexBean.getCalRows(), sheet, currentRow);
+		currentRow = fillSheetForCalAndQC(beadPlexBean.getCalRows(), sheet, currentRow, workBook);
 		// QC
-		currentRow = fillSheetForCalAndQC(beadPlexBean.getQcRows(), sheet, currentRow);
+		currentRow = fillSheetForCalAndQC(beadPlexBean.getQcRows(), sheet, currentRow, workBook);
 		// OTHER ROWS
 		Map<Integer, List<ExcelRow>> mapToProcess = beadPlexBean.getMapPositionExcelRows();
 		for (int j = 1 ; j<50 ; j=j+2) {
@@ -217,6 +218,8 @@ public class Generator {
 						if (!StringUtil.isEmpty(excelRow.getFittedConcentration())) {
 							getCell(row, 10).setCellValue(Double.parseDouble(excelRow.getFittedConcentration()));
 						}
+						getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
+						getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
 					}
 					nbExcelRowProcessed++;
 					stringFromSrcFile.remove(excelRow.getBeadPlex() + "/" + excelRow.getSampleID() + "/" + excelRow.getLocation().toString());
@@ -234,6 +237,8 @@ public class Generator {
 							if (!StringUtil.isEmpty(potentialDuplicate.getFittedConcentration())) {
 								getCell(row, 11).setCellValue(Double.parseDouble(potentialDuplicate.getFittedConcentration()));
 							}
+							getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
+							getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
 						}
 						twoRows = false;
 						nbExcelRowProcessed++;
@@ -471,7 +476,7 @@ public class Generator {
 		return "C:/multiplexSimoaGenerator/" + fileName + "_RESULT-" + VERSION + ".xlsx";
 	}
 
-	private int fillSheetForCalAndQC(List<ExcelRow> list, XSSFSheet sheet, int currentRow) {
+	private int fillSheetForCalAndQC(List<ExcelRow> list, XSSFSheet sheet, int currentRow, Workbook wb) {
 		boolean twoRows = false;
 		for (int i = 0 ; i < list.size() ; ) {
 			ExcelRow excelRow = list.get(i);
@@ -494,6 +499,7 @@ public class Generator {
 			XSSFRow row = sheet.getRow(currentRow);
 			if (excelRow.isQCRow() && !StringUtil.isEmpty(excelRow.getConcentration())) {
 				getCell(row, 12).setCellValue(Double.parseDouble(excelRow.getConcentration()));
+				getCell(row, 12).getCellStyle().setDataFormat(wb.createDataFormat().getFormat("0.00"));;
 			}
 			getCell(row, 1).setCellValue(excelRow.isCalRow() ? "" : excelRow.getSampleID());
 			getCell(row, 2).setCellValue(excelRow.getLocation().toString());
@@ -514,6 +520,8 @@ public class Generator {
 					getCell(row, 12).setCellValue("");
 					getCell(row, 13).setCellType(CellType.STRING);
 					getCell(row, 13).setCellValue("");
+				} else {
+					getCell(row, 13).getCellStyle().setDataFormat(wb.createDataFormat().getFormat("0.00"));;
 				}
 			}
 			
@@ -544,6 +552,7 @@ public class Generator {
 						getCell(row, 12).setCellValue("");
 						getCell(row, 13).setCellType(CellType.STRING);
 						getCell(row, 13).setCellValue("");
+						getCell(row, 13).getCellStyle().setDataFormat(wb.createDataFormat().getFormat("0.00"));;
 					}
 				}
 				i++;
