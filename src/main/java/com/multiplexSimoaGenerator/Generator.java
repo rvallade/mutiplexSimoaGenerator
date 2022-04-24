@@ -14,11 +14,7 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFColor;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.*;
 
 public class Generator {
 	private final String VERSION = "V3.2";
@@ -144,7 +140,8 @@ public class Generator {
 		for (String key : beadPlexMap.keySet()) {
 			XSSFSheet sheet = wb.cloneSheet(0, key);
 		    IndexedColors currentColor = SheetUtil.colors[color++];
-		    sheet.setTabColor(new XSSFColor(currentColor));
+			byte[] rgb= DefaultIndexedColorMap.getDefaultRGB(currentColor.getIndex());
+			sheet.setTabColor(new XSSFColor(rgb, null));
 			try {
 				fillSheet(wb, sheet, key);
 			} catch (Exception e) {

@@ -1,2 +1,7 @@
 # mutiplexSimoaGenerator
-# in intelliJ the Jar can be produced by using the Build/Build Artifacts
+# How to generate the executable jar in intelliJ:
+# ==> use the Build/Build Artifacts
+
+# how to tag application:
+# git tag V3.2
+# git push origin --tags
