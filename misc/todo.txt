@@ -38,4 +38,7 @@ integration de la version en static field
 integration de la version dans le fichier resultat
 prevent creation of result file when an existing one is detected
 
+V3.2
+fixed an issue when column "SAMPLE ID" is not present
+
 Voir pour colorier les cellule header de la meme couleur que le tab

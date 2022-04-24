@@ -20,7 +20,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Generator {
-	private final String VERSION = "V3.1";
+	private final String VERSION = "V3.2";
 	private Map<String, Integer> mapPositions = null;
 	private static final String MODELE_RAPPORT = "neuro4plex_Model.xlsx";
 	private Map<String, BeadPlexBean> beadPlexMap = null;
@@ -306,7 +306,7 @@ public class Generator {
 					throw new Exception("Can't find the loction of every relevant headers.");
 				}
 				
-				posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL);
+				posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL) != null ? mapPositions.get(SheetUtil.SAMPLE_ID_LBL) : -1 ;
 				if (posSampleID == -1) {
 					// meaning this file is using a newer version where SAMPLE ID is replaced with Name
 					posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL_ALT);
