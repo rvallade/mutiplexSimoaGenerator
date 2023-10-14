@@ -31,7 +31,15 @@ public class Generator {
 		log("Multiplex Simoa Generator - " + VERSION);
 		log("START");
 
-		File dir = new File("C:/multiplexSimoaGenerator");
+		File dir = null;
+		String os = System.getProperty("os.name");
+		if (os.startsWith("Windows")) {
+			System.out.println("Windows");
+			dir = new File("C:/multiplexSimoaGenerator");
+		} else if (os.startsWith("Linux")) {
+			System.out.println("Linux");
+			dir = new File(System.getProperty("user.home") + "/multiplexSimoaGenerator");
+		}
 
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
 		File[] resultFiles = dir.listFiles((d, name) -> name.endsWith(".xlsx"));
@@ -470,7 +478,16 @@ public class Generator {
 	}
 	
 	private String getFilename(String fileName) {
-		return "C:/multiplexSimoaGenerator/" + fileName + "_RESULT-" + VERSION + ".xlsx";
+		String path = null;
+		String os = System.getProperty("os.name");
+		if (os.startsWith("Windows")) {
+			path = "C:/multiplexSimoaGenerator/";
+		} else if (os.startsWith("Linux")) {
+			path = System.getProperty("user.home") + "/multiplexSimoaGenerator/";
+		}
+
+
+		return path + fileName + "_RESULT-" + VERSION + ".xlsx";
 	}
 
 	private int fillSheetForCalAndQC(List<ExcelRow> list, XSSFSheet sheet, int currentRow, Workbook wb) {
