@@ -1,23 +1,21 @@
 package com.multiplexSimoaGenerator;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.util.ArrayUtil;
 import org.apache.poi.xssf.usermodel.*;
 
 public class Generator {
-	private final String VERSION = "V3.2";
+	private final String VERSION = "V4.0";
 	private Map<String, Integer> mapPositions = null;
 	private static final String MODELE_RAPPORT = "neuro4plex_Model.xlsx";
 	private Map<String, BeadPlexBean> beadPlexMap = null;
@@ -27,101 +25,149 @@ public class Generator {
 	private List<String> stringFromSrcFile = new ArrayList<>();
 	private boolean sampleNameUsedAsIsInDuplicate = false;
 	
-	public void execute() throws IOException {
+	public void execute() throws Exception {
 		log("Multiplex Simoa Generator - " + VERSION);
+		log("Provided by Romain Vallade (rvallade@gmail.com).");
 		log("START");
 
 		File dir = null;
 		String os = System.getProperty("os.name");
 		if (os.startsWith("Windows")) {
 			System.out.println("Windows");
-			dir = new File("C:/multiplexSimoaGenerator");
+			//dir = new File("C:/multiplexSimoaGenerator");
 		} else if (os.startsWith("Linux")) {
-			System.out.println("Linux");
+			//System.out.println("Linux");
 			dir = new File(System.getProperty("user.home") + "/multiplexSimoaGenerator");
 		}
+
+		readConfigFileAndInitializeMapPositions(dir);
 
 		File[] files = dir.listFiles((d, name) -> name.endsWith(".csv"));
 		File[] resultFiles = dir.listFiles((d, name) -> name.endsWith(".xlsx"));
 
-		for (File srcFile : files) {
-			clearAttributes();
-			String srcFileName = srcFile.getName().substring(0, srcFile.getName().lastIndexOf("."));
-			String filename = getFilename(srcFileName);
-			FileInputStream inputFile = null;
-			log("Processing file (" + srcFile.getName() + ")");
+		if (files == null || files.length == 0) {
+			log("0 file found.");
+		} else {
+			log(files.length + " files to process.");
+			for (File srcFile : files) {
+				clearAttributes();
+				String srcFileName = srcFile.getName().substring(0, srcFile.getName().lastIndexOf("."));
+				String filename = getFilename(srcFileName);
+				FileInputStream inputFile = null;
+				log("Processing file (" + srcFile.getName() + ")");
 
-			// Do not continue if a result file already exists for that csv
-			if (resultFiles != null && Arrays.stream(resultFiles).anyMatch(x -> x.getName().startsWith(srcFileName))) {
-				log("\tA result file already exist. This file is skipped.");
-				continue;
-			}
-			FileInputStream outputStream;
-			XSSFWorkbook wb = null;
+				// Do not continue if a result file already exists for that csv
+				if (resultFiles != null && Arrays.stream(resultFiles).anyMatch(x -> x.getName().startsWith(srcFileName))) {
+					log("\tA result file already exist. This file is skipped.");
+					continue;
+				}
+				FileInputStream outputStream;
+				XSSFWorkbook wb = null;
 
-			// read input file and build the beadPlex map
-			try {
-				// create empty result file
-				inputFile = new FileInputStream(srcFile);
-				outputStream = buildExcel(filename);
-				wb = new XSSFWorkbook(outputStream);
+				// read input file and build the beadPlex map
+				try {
+					// create empty result file
+					inputFile = new FileInputStream(srcFile);
+					outputStream = buildExcel(filename);
+					wb = new XSSFWorkbook(outputStream);
 
-				buildBeadPlexMapFromInputFile(inputFile);
-				
-				log("Read input file ... 100%");
-				
-				log("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
+					buildBeadPlexMapFromInputFile(inputFile);
+
+					log("Read input file ... 100%");
+
+					log("Total Number of BeadPlex found: " + beadPlexMap.keySet().size());
 
 				/*for (String key : beadPlexMap.keySet()) {
 					log(beadPlexMap.get(key).toString());
 				}*/
-				
-				log("Write output file ...");
-				filloutNewFile(filename, wb);
-				
-				log("Write output file ... beadplex tabs 100%");
-				filloutRowDataTab(wb);
-				
-				if (nbRowsInSrcFile != nbExcelRowProcessed) {
-					log("######## WARNING: some rows missing in result file(" + nbRowsInSrcFile + "," + nbExcelRowProcessed + ").");
-				}
 
-				if (!stringFromSrcFile.isEmpty()) {
-					for (String string : stringFromSrcFile) {
-						log(string);
+					log("Write output file ...");
+					filloutNewFile(filename, wb);
+
+					log("Write output file ... beadplex tabs 100%");
+					filloutRowDataTab(wb);
+
+					if (nbRowsInSrcFile != nbExcelRowProcessed) {
+						log("######## WARNING: some rows missing in result file(" + nbRowsInSrcFile + "," + nbExcelRowProcessed + ").");
 					}
+
+					if (!stringFromSrcFile.isEmpty()) {
+						for (String string : stringFromSrcFile) {
+							log(string);
+						}
+					}
+					log("Write output file ... raw data tab 100%");
+
+					log("Reorder sheets and set active sheet...");
+					wb.setSheetOrder("ERRORS", wb.getNumberOfSheets() - 1);
+					wb.setSheetOrder("RAW DATA", wb.getNumberOfSheets() - 1);
+					wb.setActiveSheet(0);
+
+					log("Reorder sheets and set active sheet... 100%");
+				} catch (Exception e) {
+					log("An error occured, process stopped. You will find the root cause in the ERRORS tab.");
+					e.printStackTrace();
+					logErrorInExcelFile(e.getMessage(), wb);
+					log("Logging error... 100%");
 				}
-				log("Write output file ... raw data tab 100%");
-				
-				log("Reorder sheets and set active sheet...");
-				wb.setSheetOrder("ERRORS", wb.getNumberOfSheets() - 1);
-				wb.setSheetOrder("RAW DATA", wb.getNumberOfSheets() - 1);
-				wb.setActiveSheet(0);
-				
-				log("Reorder sheets and set active sheet... 100%");
-			} catch (Exception e) {
-				log("An error occured, process stopped. You will find the root cause in the ERRORS tab.");
-				e.printStackTrace();
-				logErrorInExcelFile(e.getMessage(), wb);
-				log("Loging error... 100%");
+
+				if (inputFile != null) {
+					log("Save output file ...");
+					FileOutputStream fileOut = new FileOutputStream(filename);
+
+					wb.setForceFormulaRecalculation(true);
+					wb.write(fileOut);
+					fileOut.flush();
+					fileOut.close();
+				}
 			}
 
-			if (inputFile != null) {
-				log("Save output file ...");
-				FileOutputStream fileOut = new FileOutputStream(filename);
-
-				wb.setForceFormulaRecalculation(true);
-				wb.write(fileOut);
-				fileOut.flush();
-				fileOut.close();
-			}
 		}
+
 		log("END");
 	}
-	
+
+	private void readConfigFileAndInitializeMapPositions(File dir) throws Exception {
+		mapPositions = new HashMap<>();
+		//read json file data to String
+		List<ColumnJson> columnsMapping = null;
+		try {
+			byte[] jsonData = Files.readAllBytes(Paths.get(dir + "/columnMapping.txt"));
+			//create ObjectMapper instance
+			ObjectMapper objectMapper = new ObjectMapper();
+			TypeFactory typeFactory = objectMapper.getTypeFactory();
+			columnsMapping = objectMapper.readValue(jsonData, typeFactory.constructCollectionType(List.class, ColumnJson.class));
+		} catch (Exception e) {
+
+		}
+
+		if (columnsMapping == null) {
+			// if one doesn't exist, use the one in resources folder:
+			log("A configuration file was not usable or none was provided, using the one from the jar.");
+			try {
+				InputStream is = Generator.class.getClassLoader().getResourceAsStream("columnMapping.txt");
+				ObjectMapper objectMapper = new ObjectMapper();
+				TypeFactory typeFactory = objectMapper.getTypeFactory();
+				columnsMapping = objectMapper.readValue(is, typeFactory.constructCollectionType(List.class, ColumnJson.class));
+			} catch (Exception e) {
+				throw new Exception("Cannot find all the configuration file, ending process.");
+			}
+		}
+
+		// set the map
+		columnsMapping.forEach(
+				x -> mapPositions.put(x.getKey(), x.getPosition() - 1)
+		);
+
+		// loop over all the objects in the enum to see if we have all the information we need
+		if (Arrays.stream(SheetUtil.ColumnEnum.values()).anyMatch(x -> mapPositions.get(x.toString()) == null)) {
+			// we are missing on of the columns in the config file, we cannot continue
+			throw new Exception("Cannot find all the relevant columns in the configuration file.");
+		}
+	}
+
 	private void clearAttributes() {
-		mapPositions = new HashMap<String, Integer>();
-		beadPlexMap = new HashMap<String, BeadPlexBean>();
+		beadPlexMap = new HashMap<>();
 		rawData = new ArrayList<>();
 		stringFromSrcFile = new ArrayList<>();
 		nbExcelRowProcessed = 0;
@@ -271,7 +317,6 @@ public class Generator {
 		List<ExcelRow> rowsWithoutBeadPlexlist = new ArrayList<>();
 
 		String line;
-		int i = 0;
 		int rowNumber = 0;
 		int posSampleID = -1;
 		int posLocation = -1;
@@ -283,52 +328,31 @@ public class Generator {
 		int posError = -1;
 		int posType = -1;
 				
-		while ((line=br.readLine()) != null){
+		while ((line = br.readLine()) != null){
 			// first we need to make sure we don't have any "" on the line
 			if (line.contains("\"")) {
 				// sometimes a number is in "" with a comma to separate thousands, like
 				// ...AP,Complete,21,1.962676,"1,056.00",-,1,...
 				// if we split using the comma only it produces a bug
-				String[] datas = line.split("\"");
-				for (int position = 1 ; position < datas.length ; ) {
-					line = line.replace("\"" + datas[position] + "\"", datas[position].replace(",", ""));
+				String[] data = line.split("\"");
+				for (int position = 1 ; position < data.length ; ) {
+					line = line.replace("\"" + data[position] + "\"", data[position].replace(",", ""));
 					position = position + 2;
 				}
 			}
 			
-			String[] datas = line.split(",");
-			rawData.add(datas);
-			if (i == 0) {
-				// HEADER: we need to get the position of each header 
-				for (int z = 0 ; z < datas.length ; z++){
-					mapPositions.put(datas[z].replaceAll("\"", ""), i++);
-				}
-				
-				if (mapPositions.isEmpty()) {
-					throw new Exception("Empty map of headers.");
-				}
-				
-				if ((mapPositions.get(SheetUtil.SAMPLE_ID_LBL) == null && mapPositions.get(SheetUtil.SAMPLE_ID_LBL_ALT) == null) || mapPositions.get(SheetUtil.LOCATION_LBL) == null 
-						|| mapPositions.get(SheetUtil.BEAD_PLEX_NAME_LBL) == null || mapPositions.get(SheetUtil.STATUS_LBL) == null
-						|| mapPositions.get(SheetUtil.AEB_LBL) == null || mapPositions.get(SheetUtil.CONCENTRATION_LBL) == null
-						|| mapPositions.get(SheetUtil.FITTED_CONCENTRATION_LBL) == null || mapPositions.get(SheetUtil.ERROR_TXT_LBL) == null
-						|| mapPositions.get(SheetUtil.TYPE) == null) {
-					throw new Exception("Can't find the loction of every relevant headers.");
-				}
-				
-				posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL) != null ? mapPositions.get(SheetUtil.SAMPLE_ID_LBL) : -1 ;
-				if (posSampleID == -1) {
-					// meaning this file is using a newer version where SAMPLE ID is replaced with Name
-					posSampleID = mapPositions.get(SheetUtil.SAMPLE_ID_LBL_ALT);
-				}
-				posLocation = mapPositions.get(SheetUtil.LOCATION_LBL);
-				posBeadPleaxName = mapPositions.get(SheetUtil.BEAD_PLEX_NAME_LBL);
-				posStatus = mapPositions.get(SheetUtil.STATUS_LBL);
-				posAEB = mapPositions.get(SheetUtil.AEB_LBL);
-				posConcentration = mapPositions.get(SheetUtil.CONCENTRATION_LBL);
-				posFittedConcentration = mapPositions.get(SheetUtil.FITTED_CONCENTRATION_LBL);
-				posError = mapPositions.get(SheetUtil.ERROR_TXT_LBL);
-				posType = mapPositions.get(SheetUtil.TYPE);
+			String[] data = line.split(",");
+			rawData.add(data);
+			if (rowNumber == 0) {
+				posStatus = mapPositions.get(SheetUtil.ColumnEnum.STATUS.toString());
+				posBeadPleaxName = mapPositions.get(SheetUtil.ColumnEnum.BEAD_PLEX_NAME.toString());
+				posSampleID = mapPositions.get(SheetUtil.ColumnEnum.SAMPLE_ID.toString());
+				posType = mapPositions.get(SheetUtil.ColumnEnum.TYPE.toString());
+				posLocation = mapPositions.get(SheetUtil.ColumnEnum.LOCATION.toString());
+				posAEB = mapPositions.get(SheetUtil.ColumnEnum.AEB.toString());
+				posConcentration = mapPositions.get(SheetUtil.ColumnEnum.CONCENTRATION.toString());
+				posFittedConcentration = mapPositions.get(SheetUtil.ColumnEnum.FITTED_CONCENTRATION.toString());
+				posError = mapPositions.get(SheetUtil.ColumnEnum.ERRORS.toString());
 
 				if (posSampleID == -1 || posLocation == -1 || posBeadPleaxName == -1 || posStatus == -1 
 						|| posAEB == -1 || posConcentration == -1 || posError == -1 || posType == -1) {
@@ -339,20 +363,20 @@ public class Generator {
 			} else {
 				nbRowsInSrcFile++;
 				// the actual data
-				String beadPlex = datas[posBeadPleaxName].replaceAll("\"", "");
-				String aeb = datas[posAEB].replaceAll("\"", "");
+				String beadPlex = data[posBeadPleaxName].replaceAll("\"", "");
+				String aeb = data[posAEB].replaceAll("\"", "");
 
-				Location location = new Location(datas[posLocation].replaceAll("\"", ""));
+				Location location = new Location(data[posLocation].replaceAll("\"", ""));
 				ExcelRow currentRow = new ExcelRow(
 						rowNumber++, 
 						beadPlex,
-						datas[posSampleID].replaceAll("\"", ""),
-						datas[posConcentration].replaceAll("\"", ""), 
+						data[posSampleID].replaceAll("\"", ""),
+						data[posConcentration].replaceAll("\"", ""),
 						location, 
 						aeb,
-						datas[posFittedConcentration].replaceAll("\"", ""),
-						datas[posType]);
-				currentRow.setErrorMessage(datas[posError].replaceAll("\"", ""));
+						data[posFittedConcentration].replaceAll("\"", ""),
+						data[posType]);
+				currentRow.setErrorMessage(data[posError].replaceAll("\"", ""));
 				
 				if (StringUtil.isEmpty(beadPlex)) {
 					// add row to the list of rows without beadPlex. Those rows should be added to every beadPlex' map at the end
@@ -501,7 +525,7 @@ public class Generator {
 				potentialDuplicate = list.get(i+1);
 			}
 			
-			if (potentialDuplicate != null && sampleNameUsedAsIsInDuplicate == false) {
+			if (potentialDuplicate != null && !sampleNameUsedAsIsInDuplicate) {
 				sampleNameUsedAsIsInDuplicate = StringUtil.isSameSampleNameForBothMode(excelRow.getSampleID(), potentialDuplicate.getSampleID());
 			}
 			if (potentialDuplicate != null 

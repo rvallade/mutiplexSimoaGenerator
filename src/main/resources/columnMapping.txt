@@ -1,0 +1,47 @@
+[
+	{
+		"key":"STATUS",
+		"label":"Status",
+		"position":1
+	},
+	{
+		"key":"BEAD_PLEX_NAME",
+		"label":"Bead Plex Name",
+		"position":4
+	},
+	{
+		"key":"SAMPLE_ID",
+		"label":"Name",
+		"position":5
+	},
+	{
+		"key":"TYPE",
+		"label":"Type",
+		"position":6
+	},
+	{
+		"key":"LOCATION",
+		"label":"Location",
+		"position":7
+	},
+	{
+		"key":"AEB",
+		"label":"AEB",
+		"position":8
+	},
+	{
+		"key":"CONCENTRATION",
+		"label":"Conc.",
+		"position":9
+	},
+	{
+		"key":"FITTED_CONCENTRATION",
+		"label":"Fitted Conc",
+		"position":10
+	},
+	{
+		"key":"ERRORS",
+		"label":"Errors",
+		"position":13
+	}
+]

@@ -11,7 +11,7 @@ public class RunBatch {
 
 		try {
 			generator.execute();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

@@ -12,19 +12,11 @@ public class SheetUtil {
 	public static final int AEB = 12;
 	public static final int CONCENTRATION = 13;
 	public static final int ERROR_TXT = 33;
-	
-	public static final String SAMPLE_ID_LBL = "Sample ID";
-	public static final String SAMPLE_ID_LBL_ALT = "Name";
-	public static final String LOCATION_LBL = "Location";
-	public static final String BEAD_PLEX_NAME_LBL = "Bead Plex Name";
-	public static final String STATUS_LBL = "Status";
-	public static final String AEB_LBL = "AEB";
-	public static final String CONCENTRATION_LBL = "Conc.";
-	public static final String FITTED_CONCENTRATION_LBL = "Fitted Conc"; 
-	public static final String ERROR_TXT_LBL = "Errors";
-	public static final String TYPE = "Type";
 
-	
+	public enum ColumnEnum {
+		STATUS, BEAD_PLEX_NAME, SAMPLE_ID, TYPE, LOCATION, AEB, CONCENTRATION, FITTED_CONCENTRATION, ERRORS;
+	}
+
 	public static final IndexedColors[] colors = {IndexedColors.LEMON_CHIFFON, IndexedColors.CORAL, IndexedColors.TAN, IndexedColors.LIGHT_CORNFLOWER_BLUE, IndexedColors.YELLOW};
 
 	public static void removeRow(Sheet sheet, int rowIndex) {
