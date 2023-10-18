@@ -57,7 +57,7 @@ public class ExcelRow {
 	}
 
 	public String getAeb() {
-		return aeb;
+		return aeb.replace("-", "");
 	}
 
 	public void setAeb(String aeb) {

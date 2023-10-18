@@ -7,36 +7,43 @@ import java.util.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.util.ArrayUtil;
 import org.apache.poi.xssf.usermodel.*;
 
 public class Generator {
 	private final String VERSION = "V4.0";
 	private Map<String, Integer> mapPositions = null;
-	private static final String MODELE_RAPPORT = "neuro4plex_Model.xlsx";
+	private static final String MODEL_RAPPORT = "neuro4plex_Model.xlsx";
 	private Map<String, BeadPlexBean> beadPlexMap = null;
 	private List<String[]> rawData = null;
 	private int nbRowsInSrcFile = 0;
 	private int nbExcelRowProcessed = 0;
 	private List<String> stringFromSrcFile = new ArrayList<>();
 	private boolean sampleNameUsedAsIsInDuplicate = false;
-	
+	Logger logger = LogManager.getLogger(getClass());
+
 	public void execute() throws Exception {
+		log("\n" +
+				"  __  __      _ _   _      _          ___ _                  ___                       _           \n" +
+				" |  \\/  |_  _| | |_(_)_ __| |_____ __/ __(_)_ __  ___  __ _ / __|___ _ _  ___ _ _ __ _| |_ ___ _ _ \n" +
+				" | |\\/| | || | |  _| | '_ \\ / -_) \\ /\\__ \\ | '  \\/ _ \\/ _` | (_ / -_) ' \\/ -_) '_/ _` |  _/ _ \\ '_|\n" +
+				" |_|  |_|\\_,_|_|\\__|_| .__/_\\___/_\\_\\|___/_|_|_|_\\___/\\__,_|\\___\\___|_||_\\___|_| \\__,_|\\__\\___/_|  \n" +
+				"                     |_|                                                                           \n");
 		log("Multiplex Simoa Generator - " + VERSION);
-		log("Provided by Romain Vallade (rvallade@gmail.com).");
-		log("START");
+		log("Provided by Romain Vallade (rvallade@gmail.com). Shoot a message if you like that program!");
 
 		File dir = null;
 		String os = System.getProperty("os.name");
 		if (os.startsWith("Windows")) {
-			System.out.println("Windows");
-			//dir = new File("C:/multiplexSimoaGenerator");
+			System.out.println("Windows system");
+			dir = new File("C:/multiplexSimoaGenerator");
 		} else if (os.startsWith("Linux")) {
-			//System.out.println("Linux");
+			System.out.println("Linux system");
 			dir = new File(System.getProperty("user.home") + "/multiplexSimoaGenerator");
 		}
 
@@ -82,7 +89,7 @@ public class Generator {
 				}*/
 
 					log("Write output file ...");
-					filloutNewFile(filename, wb);
+					filloutNewFile(wb);
 
 					log("Write output file ... beadplex tabs 100%");
 					filloutRowDataTab(wb);
@@ -105,7 +112,7 @@ public class Generator {
 
 					log("Reorder sheets and set active sheet... 100%");
 				} catch (Exception e) {
-					log("An error occured, process stopped. You will find the root cause in the ERRORS tab.");
+					logger.error("An error occured, process stopped. You will find the root cause in the ERRORS tab.");
 					e.printStackTrace();
 					logErrorInExcelFile(e.getMessage(), wb);
 					log("Logging error... 100%");
@@ -187,7 +194,7 @@ public class Generator {
 		}
 	}
 
-	private void filloutNewFile(String filename, XSSFWorkbook wb) throws IOException, FileNotFoundException {
+	private void filloutNewFile(XSSFWorkbook wb) {
 		// based on the map, create the tabs and fill them
 		// for each beadPlex ==> 1 tab
 	    int color = 0;
@@ -213,7 +220,7 @@ public class Generator {
 		cell.setCellValue(message);
 	}
  	
-	private void fillSheet(Workbook workBook, XSSFSheet sheet, String key) throws Exception {
+	private void fillSheet(Workbook workBook, XSSFSheet sheet, String key) {
 		// just the common stuff
 		XSSFRow header = sheet.getRow(0);
 		header.getCell(0).setCellValue(key + " (pg/mL)");
@@ -235,13 +242,12 @@ public class Generator {
 		currentRow = fillSheetForCalAndQC(beadPlexBean.getQcRows(), sheet, currentRow, workBook);
 		// OTHER ROWS
 		Map<Integer, List<ExcelRow>> mapToProcess = beadPlexBean.getMapPositionExcelRows();
-		for (int j = 1 ; j<50 ; j=j+2) {
+		for (int j = 1 ; j < 50 ; j = j + 2) {
 			List<ExcelRow> list = mapToProcess.get(j);
 			List<ExcelRow> duplicatesList = beadPlexBean.getDuplicateRows();
 			
 			if (list != null) {
-				for (int i = 0 ; i < list.size() ; i++) {
-					ExcelRow excelRow = list.get(i);
+				for (ExcelRow excelRow : list) {
 					//log("Processing main line: \r\n" + excelRow.toString());
 					if (duplicatesList == null) {
 						log("#######   duplicatesList is null");
@@ -252,10 +258,10 @@ public class Generator {
 						//log("Processing duplicate: \r\n" + potentialDuplicate.toString());
 						twoRows = true;
 					}
-					
+
 					// the first is always there
 					XSSFRow row = sheet.getRow(currentRow);
-					
+
 					getCell(row, 1).setCellValue(StringUtil.getCommonSampleName(excelRow.getSampleID(), sampleNameUsedAsIsInDuplicate));
 					getCell(row, 2).setCellValue(excelRow.getLocation().toString());
 					if (StringUtil.isEmpty(excelRow.getBeadPlex())) {
@@ -269,12 +275,12 @@ public class Generator {
 						if (!StringUtil.isEmpty(excelRow.getFittedConcentration())) {
 							getCell(row, 10).setCellValue(Double.parseDouble(excelRow.getFittedConcentration()));
 						}
-						getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
-						getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
+						getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));
+						getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));
 					}
 					nbExcelRowProcessed++;
 					stringFromSrcFile.remove(excelRow.getBeadPlex() + "/" + excelRow.getSampleID() + "/" + excelRow.getLocation().toString());
-					
+
 					if (twoRows) {
 						getCell(row, 3).setCellValue(potentialDuplicate.getLocation().toString());
 						if (StringUtil.isEmpty(potentialDuplicate.getBeadPlex())) {
@@ -288,14 +294,15 @@ public class Generator {
 							if (!StringUtil.isEmpty(potentialDuplicate.getFittedConcentration())) {
 								getCell(row, 11).setCellValue(Double.parseDouble(potentialDuplicate.getFittedConcentration()));
 							}
-							getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
-							getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));;
+							getCell(row, 12).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));
+							getCell(row, 13).getCellStyle().setDataFormat(workBook.createDataFormat().getFormat("0.00"));
 						}
 						twoRows = false;
 						nbExcelRowProcessed++;
 						stringFromSrcFile.remove(potentialDuplicate.getBeadPlex() + "/" + potentialDuplicate.getSampleID() + "/" + potentialDuplicate.getLocation().toString());
 					}
 					currentRow++;
+
 				}
 			}
 		}
@@ -320,7 +327,7 @@ public class Generator {
 		int rowNumber = 0;
 		int posSampleID = -1;
 		int posLocation = -1;
-		int posBeadPleaxName = -1;
+		int posBeadPlexName = -1;
 		int posStatus = -1;
 		int posAEB = -1;
 		int posConcentration = -1;
@@ -345,7 +352,7 @@ public class Generator {
 			rawData.add(data);
 			if (rowNumber == 0) {
 				posStatus = mapPositions.get(SheetUtil.ColumnEnum.STATUS.toString());
-				posBeadPleaxName = mapPositions.get(SheetUtil.ColumnEnum.BEAD_PLEX_NAME.toString());
+				posBeadPlexName = mapPositions.get(SheetUtil.ColumnEnum.BEAD_PLEX_NAME.toString());
 				posSampleID = mapPositions.get(SheetUtil.ColumnEnum.SAMPLE_ID.toString());
 				posType = mapPositions.get(SheetUtil.ColumnEnum.TYPE.toString());
 				posLocation = mapPositions.get(SheetUtil.ColumnEnum.LOCATION.toString());
@@ -354,7 +361,7 @@ public class Generator {
 				posFittedConcentration = mapPositions.get(SheetUtil.ColumnEnum.FITTED_CONCENTRATION.toString());
 				posError = mapPositions.get(SheetUtil.ColumnEnum.ERRORS.toString());
 
-				if (posSampleID == -1 || posLocation == -1 || posBeadPleaxName == -1 || posStatus == -1 
+				if (posSampleID == -1 || posLocation == -1 || posBeadPlexName == -1 || posStatus == -1
 						|| posAEB == -1 || posConcentration == -1 || posError == -1 || posType == -1) {
 					throw new Exception("Impossible to determine the correct position of all the relevant data.");
 				}
@@ -363,7 +370,7 @@ public class Generator {
 			} else {
 				nbRowsInSrcFile++;
 				// the actual data
-				String beadPlex = data[posBeadPleaxName].replaceAll("\"", "");
+				String beadPlex = data[posBeadPlexName].replaceAll("\"", "");
 				String aeb = data[posAEB].replaceAll("\"", "");
 
 				Location location = new Location(data[posLocation].replaceAll("\"", ""));
@@ -418,7 +425,7 @@ public class Generator {
 	}
 
 	public FileInputStream buildExcel(String filename) throws FileNotFoundException {
-		InputStream is = Generator.class.getClassLoader().getResourceAsStream(MODELE_RAPPORT);
+		InputStream is = Generator.class.getClassLoader().getResourceAsStream(MODEL_RAPPORT);
 		File rapportOut = new File(filename);
 		copyFile(is, rapportOut);
 
@@ -466,7 +473,7 @@ public class Generator {
 			}
 		}
 		
-		return new FileInputStream(new File(filename));
+		return new FileInputStream(filename);
 	}
 
 	private static int copyFile(InputStream input, File dest) {
@@ -509,8 +516,6 @@ public class Generator {
 		} else if (os.startsWith("Linux")) {
 			path = System.getProperty("user.home") + "/multiplexSimoaGenerator/";
 		}
-
-
 		return path + fileName + "_RESULT-" + VERSION + ".xlsx";
 	}
 
@@ -590,7 +595,7 @@ public class Generator {
 						getCell(row, 12).setCellValue("");
 						getCell(row, 13).setCellType(CellType.STRING);
 						getCell(row, 13).setCellValue("");
-						getCell(row, 13).getCellStyle().setDataFormat(wb.createDataFormat().getFormat("0.00"));;
+						getCell(row, 13).getCellStyle().setDataFormat(wb.createDataFormat().getFormat("0.00"));
 					}
 				}
 				i++;
@@ -624,6 +629,6 @@ public class Generator {
 	}
 	
 	private void log(String message) {
-		System.out.println(message);
+		logger.info(message);
 	}
 }

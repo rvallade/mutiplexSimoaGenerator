@@ -5,14 +5,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
 public class SheetUtil {
-	public static final int SAMPLE_ID = 1;
-	public static final int LOCATION = 3;
-	public static final int BEAD_PLEX_NAME = 7;
-	public static final int STATUS = 9;
-	public static final int AEB = 12;
-	public static final int CONCENTRATION = 13;
-	public static final int ERROR_TXT = 33;
-
 	public enum ColumnEnum {
 		STATUS, BEAD_PLEX_NAME, SAMPLE_ID, TYPE, LOCATION, AEB, CONCENTRATION, FITTED_CONCENTRATION, ERRORS;
 	}

@@ -10,14 +10,14 @@ import java.util.Map;
 import java.util.Set;
 
 public class BeadPlexBean {
-	private String beadPlex = null;
+	private String beadPlex;
 	private List<ExcelRow> listOfAllRows = new ArrayList<>();
 	private Map<Integer, List<ExcelRow>> mapPositionExcelRows = new HashMap<>();
 	private List<ExcelRow> calRows = new ArrayList<>();
 	private List<ExcelRow> qcRows = new ArrayList<>();
 	private List<ExcelRow> duplicateRows = new ArrayList<>();
 	private Set<String> sampleIDSet = new HashSet<>();
-	private boolean sampleNameUsedAsIsInDuplicate = false;
+	private boolean sampleNameUsedAsIsInDuplicate;
 	
 	public BeadPlexBean(String beadPlex, boolean sampleNameUsedAsIsInDuplicate) {
 		this.beadPlex = beadPlex;
@@ -29,11 +29,7 @@ public class BeadPlexBean {
 	}
 	
 	public void dispatchRows() {
-		Collections.sort(listOfAllRows, new Comparator<ExcelRow>() {
-			public int compare(ExcelRow o1, ExcelRow o2) {
-				return o1.getSampleID().compareTo(o2.getSampleID());
-			}
-		});
+		listOfAllRows.sort(Comparator.comparing(ExcelRow::getSampleID));
 		for (ExcelRow row : listOfAllRows) {
 			addRow(row);
 		}
@@ -56,11 +52,7 @@ public class BeadPlexBean {
 	
 	private void addExcelRowToPositionMap(ExcelRow row) {
 		int position = Integer.parseInt(row.getLocation().getNumber());
-		List<ExcelRow> list = mapPositionExcelRows.get(position);
-		if (list == null) {
-			list = new ArrayList<ExcelRow>();
-			mapPositionExcelRows.put(position, list);
-		}
+		List<ExcelRow> list = mapPositionExcelRows.computeIfAbsent(position, k -> new ArrayList<>());
 		list.add(row);
 	}
 	
@@ -73,7 +65,7 @@ public class BeadPlexBean {
 	}
 	
 	public void addRowsWithoutExplicitBeadPlex(List<ExcelRow> rows) {
-		for(ExcelRow row : rows) {
+		for (ExcelRow row : rows) {
 			addExcelRowToPositionMap(row);
 		}
 	}
@@ -83,42 +75,38 @@ public class BeadPlexBean {
 	}
 	
 	public void sortLists() {
-		Collections.sort(calRows, new Comparator<ExcelRow>() {
-			public int compare(ExcelRow o1, ExcelRow o2) {
-				String sampleID1 = o1.getSampleID();
-				String sampleID2 = o2.getSampleID();
-				if (o1.isCalRow() && o2.isCalRow()) {
-					return sampleID1.compareTo(sampleID2);
-				} else if (o1.isCalRow()){
-					return -1;
-				} else {
-					return 1;
-				}
+		calRows.sort((o1, o2) -> {
+			String sampleID1 = o1.getSampleID();
+			String sampleID2 = o2.getSampleID();
+			if (o1.isCalRow() && o2.isCalRow()) {
+				return sampleID1.compareTo(sampleID2);
+			} else if (o1.isCalRow()) {
+				return -1;
+			} else {
+				return 1;
 			}
 		});
-		Collections.sort(qcRows, new Comparator<ExcelRow>() {
-			public int compare(ExcelRow o1, ExcelRow o2) {
-				String sampleID1 = o1.getSampleID();
-				String sampleID2 = o2.getSampleID();
-				if (o1.isQCRow() && o2.isQCRow()) {
-					return sampleID1.compareTo(sampleID2);
-				} else if (o1.isQCRow()){
-					return -1;
-				} else {
-					return 1;
-				}
+
+		qcRows.sort((o1, o2) -> {
+			String sampleID1 = o1.getSampleID();
+			String sampleID2 = o2.getSampleID();
+			if (o1.isQCRow() && o2.isQCRow()) {
+				return sampleID1.compareTo(sampleID2);
+			} else if (o1.isQCRow()) {
+				return -1;
+			} else {
+				return 1;
 			}
 		});
-		for (int i = 1 ; i<50 ; i++) {
+
+		for (int i = 1 ; i < 50 ; i++) {
 			List<ExcelRow> list = mapPositionExcelRows.get(i);
 			if (list != null) {
-				Collections.sort(list, new Comparator<ExcelRow>() {
-					public int compare(ExcelRow o1, ExcelRow o2) {
-						Location loc1 = o1.getLocation();
-						Location loc2 = o2.getLocation();
-						return loc1.getLetter().compareTo(loc2.getLetter());
-					}
-				});	
+				list.sort((o1, o2) -> {
+					Location loc1 = o1.getLocation();
+					Location loc2 = o2.getLocation();
+					return loc1.getLetter().compareTo(loc2.getLetter());
+				});
 			}
 		}
 	}
