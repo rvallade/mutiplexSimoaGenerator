@@ -46,8 +46,8 @@ Resolved POI dependency (migrated to 3.17)
 
 V4.0
 introducing configuration file (no more locating column using label)
-
+Apache POI 5
+log4J2
 
 
 Voir pour colorier les cellule header de la meme couleur que le tab
-Migrer pour Apache POI 4!!!!!
